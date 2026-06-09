@@ -1,0 +1,313 @@
+// Grafolão 2026 — Schema Prism// Banco: PostgreSQL (Supabase)
+// Gerado com base nos requisitos definidos em sessão de planejamento
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// AUTENTICAÇÃO E USUÁRIOS
+// ─────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  PARTICIPANTE
+}
+
+model Usuario {
+  id         String   @id @default(uuid())
+  nome       String
+  email      String   @unique
+  avatarUrl  String?
+  googleId   String   @unique
+  role       Role     @default(PARTICIPANTE)
+  ativo      Boolean  @default(true)
+  criadoEm   DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  palpites          Palpite[]
+  palpitesEspeciais PalpiteEspecial[]
+
+  // Módulo Proposta 2 — grafo de confrontos
+  confrontosComoVencedor Confronto[] @relation("vencedor")
+  confrontosComoPerdedor Confronto[] @relation("perdedor")
+
+  // Módulo Proposta 4 — DAG de estados
+  estadosRodada EstadoRodada[]
+
+  @@map("usuarios")
+}
+
+// ─────────────────────────────────────────
+// COPA DO MUNDO — TIMES E GRUPOS
+// ─────────────────────────────────────────
+
+model Time {
+  id      String  @id @default(uuid())
+  nome    String  @unique
+  codigo  String? // ex: BRA, ARG, FRA
+  grupo   String? // ex: Group A, Group B
+
+  jogosCasa    Jogo[] @relation("timeCasa")
+  jogosVisitante Jogo[] @relation("timeVisitante")
+
+  @@map("times")
+}
+
+// ─────────────────────────────────────────
+// JOGOS
+// ─────────────────────────────────────────
+
+enum Fase {
+  GRUPOS
+  ROUND_OF_32
+  ROUND_OF_16
+  QUARTAS
+  SEMIFINAL
+  TERCEIRO_LUGAR
+  FINAL
+}
+
+enum StatusJogo {
+  AGENDADO      // ainda não começou
+  EM_ANDAMENTO  // ao vivo
+  ENCERRADO     // resultado inserido
+  BLOQUEADO     // mata-mata ainda não liberado
+}
+
+model Jogo {
+  id          String     @id @default(uuid())
+  num         Int?       // número do jogo no calendário (ex: 73, 74...)
+  fase        Fase
+  rodada      String     // ex: "Matchday 1", "Round of 32", "Quarter-final"
+  grupo       String?    // ex: "Group A" — só na fase de grupos
+  dataHora    DateTime
+  local       String
+
+  // Times — podem ser nulos no mata-mata até serem definidos
+  timeCasaId      String?
+  timeVisitanteId String?
+  timeCasa        Time?   @relation("timeCasa", fields: [timeCasaId], references: [id])
+  timeVisitante   Time?   @relation("timeVisitante", fields: [timeVisitanteId], references: [id])
+
+  // Referência textual pro mata-mata antes de definir os times
+  // ex: "W73", "1A", "2B" — zerado quando times forem definidos
+  timeCasaRef      String?
+  timeVisitanteRef String?
+
+  status      StatusJogo @default(AGENDADO)
+
+  resultado   Resultado?
+  palpites    Palpite[]
+  confrontos  Confronto[]
+
+  // Módulo Proposta 4 — DAG de estados
+  estadosRodada EstadoRodada[]
+
+  @@map("jogos")
+}
+
+// ─────────────────────────────────────────
+// RESULTADOS (inseridos pelo admin)
+// ─────────────────────────────────────────
+
+model Resultado {
+  id             String   @id @default(uuid())
+  jogoId         String   @unique
+  jogo           Jogo     @relation(fields: [jogoId], references: [id])
+
+  golsCasa       Int
+  golsVisitante  Int
+
+  // Para desempate na fase de grupos
+  cartoesAmarelos Int @default(0) // total dos dois times
+  cartoesVermelhosIndiretos Int @default(0) // vermelho por 2 amarelos
+  cartoesVermelhosDiretos Int @default(0)
+  cartoesAmarelosMaisVermelho Int @default(0)
+
+  inseridoEm    DateTime @default(now())
+  inseridoPor   String   // userId do admin
+
+  palpites      Palpite[] // relação para calcular pontuação
+
+  @@map("resultados")
+}
+
+// ─────────────────────────────────────────
+// PALPITES
+// ─────────────────────────────────────────
+
+enum StatusPalpite {
+  PENDENTE   // resultado ainda não inserido
+  ACERTO_PLACAR    // 3 pontos
+  ACERTO_RESULTADO // 1 ponto
+  ERRO             // 0 pontos
+}
+
+model Palpite {
+  id          String       @id @default(uuid())
+  usuarioId   String
+  jogoId      String
+  resultadoId String?
+
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
+  jogo        Jogo         @relation(fields: [jogoId], references: [id])
+  resultado   Resultado?   @relation(fields: [resultadoId], references: [id])
+
+  golsCasa      Int
+  golsVisitante Int
+
+  pontos      Int          @default(0)
+  status      StatusPalpite @default(PENDENTE)
+
+  criadoEm    DateTime     @default(now())
+  atualizadoEm DateTime    @updatedAt
+
+  // Módulo Proposta 2 — usado para construir o grafo de confrontos
+  confrontos  Confronto[]
+
+  @@unique([usuarioId, jogoId]) // um palpite por usuário por jogo
+  @@map("palpites")
+}
+
+// ─────────────────────────────────────────
+// PALPITES ESPECIAIS
+// (campeão, vice, 3° lugar, artilheiro)
+// ─────────────────────────────────────────
+
+enum TipoPalpiteEspecial {
+  CAMPEAO
+  VICE
+  TERCEIRO_LUGAR
+  ARTILHEIRO
+}
+
+model PalpiteEspecial {
+  id        String              @id @default(uuid())
+  usuarioId String
+  tipo      TipoPalpiteEspecial
+  valor     String              // nome do time ou jogador
+  pontos    Int                 @default(0)
+  acertou   Boolean?            // null = pendente
+
+  usuario   Usuario             @relation(fields: [usuarioId], references: [id])
+
+  criadoEm    DateTime          @default(now())
+  atualizadoEm DateTime         @updatedAt
+
+  @@unique([usuarioId, tipo])
+  @@map("palpites_especiais")
+}
+
+// ─────────────────────────────────────────
+// MÓDULO PROPOSTA 2 — GRAFO DE CONFRONTOS
+// Samuel Davi
+// ─────────────────────────────────────────
+
+// Aresta direcionada: vencedor → perdedor em um jogo específico
+// A→B quando A teve palpite melhor que B naquele jogo
+model Confronto {
+  id          String  @id @default(uuid())
+  jogoId      String
+  vencedorId  String
+  perdedorId  String
+  palpiteId   String  // palpite do vencedor que gerou a aresta
+
+  jogo        Jogo    @relation(fields: [jogoId], references: [id])
+  vencedor    Usuario @relation("vencedor", fields: [vencedorId], references: [id])
+  perdedor    Usuario @relation("perdedor", fields: [perdedorId], references: [id])
+  palpite     Palpite @relation(fields: [palpiteId], references: [id])
+
+  // Peso da aresta: 3 se venceu por placar exato, 1 se por resultado
+  peso        Int     @default(1)
+
+  criadoEm    DateTime @default(now())
+
+  @@unique([jogoId, vencedorId, perdedorId])
+  @@map("confrontos")
+}
+
+// Cache do PageRank calculado pelo backend (evita recalcular a cada request)
+model PageRankSnapshot {
+  id          String   @id @default(uuid())
+  usuarioId   String
+  rodada      String?  // null = acumulado total
+  score       Float
+  ranking     Int
+  calculadoEm DateTime @default(now())
+
+  @@map("pagerank_snapshots")
+}
+
+// Ciclos detectados no grafo de confrontos
+model CicloDetectado {
+  id          String   @id @default(uuid())
+  rodada      String?
+  // participantes do ciclo em ordem, separados por vírgula
+  // ex: "uuid-a,uuid-b,uuid-c"
+  participantes String
+  tamanho     Int
+  detectadoEm DateTime @default(now())
+
+  @@map("ciclos_detectados")
+}
+
+// ─────────────────────────────────────────
+// MÓDULO PROPOSTA 4 — DAG DE ESTADOS
+// Colega 1
+// ─────────────────────────────────────────
+
+// Nó do DAG: participante em uma rodada específica
+model EstadoRodada {
+  id            String   @id @default(uuid())
+  usuarioId     String
+  jogoId        String
+  rodada        String
+
+  // Métricas do estado neste nó
+  totalPontos   Int      @default(0)
+  percentualAcerto Float @default(0)
+  melhorou      Boolean  @default(false) // em relação à rodada anterior
+
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id])
+  jogo          Jogo     @relation(fields: [jogoId], references: [id])
+
+  @@map("estados_rodada")
+}
+
+// ─────────────────────────────────────────
+// MÓDULO PROPOSTA 5 — CLIQUES E PANELINHAS
+// Colega 2
+// ─────────────────────────────────────────
+
+// Registra quais participantes acertaram cada jogo
+// Projeção do grafo bipartido participantes × jogos
+model AcertoCompartilhado {
+  id          String   @id @default(uuid())
+  jogoId      String
+  usuarioId   String
+  tipoAcerto  String   // "placar_exato" | "resultado"
+
+  criadoEm    DateTime @default(now())
+
+  @@unique([jogoId, usuarioId])
+  @@map("acertos_compartilhados")
+}
+
+// Cache das cliques encontradas por rodada
+model CliqueSnapshot {
+  id           String   @id @default(uuid())
+  rodada       String?
+  // membros da clique separados por vírgula
+  membros      String
+  tamanho      Int
+  tipo         String   // "maxima" | "maximal"
+  calculadoEm DateTime @default(now())
+
+  @@map("clique_snapshots")
+}
