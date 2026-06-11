@@ -51,7 +51,7 @@ async function seed() {
   }
  
   const { default: copa } = await import('../../data/copa2026.utc4.json', {
-    assert: { type: 'json' },
+    with: { type: 'json' },
   })
  
   const matches = (copa as any).matches as any[]
