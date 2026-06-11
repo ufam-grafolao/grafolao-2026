@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─────────────────────────────────────────
@@ -117,23 +118,25 @@ model Jogo {
 // ─────────────────────────────────────────
 
 model Resultado {
-  id             String   @id @default(uuid())
-  jogoId         String   @unique
-  jogo           Jogo     @relation(fields: [jogoId], references: [id])
+  id            String   @id @default(uuid())
+  jogoId        String   @unique
+  jogo          Jogo     @relation(fields: [jogoId], references: [id])
 
-  golsCasa       Int
-  golsVisitante  Int
+  golsCasa      Int
+  golsVisitante Int
 
-  // Para desempate na fase de grupos
-  cartoesAmarelos Int @default(0) // total dos dois times
-  cartoesVermelhosIndiretos Int @default(0) // vermelho por 2 amarelos
-  cartoesVermelhosDiretos Int @default(0)
+  artilheirosCasa      String[] @default([])  // ["Lozano", "Jiménez"]
+  artilheirosVisitante String[] @default([])
+
+  cartoesAmarelos             Int @default(0)
+  cartoesVermelhosIndiretos   Int @default(0)
+  cartoesVermelhosDiretos     Int @default(0)
   cartoesAmarelosMaisVermelho Int @default(0)
 
-  inseridoEm    DateTime @default(now())
-  inseridoPor   String   // userId do admin
+  inseridoEm  DateTime @default(now())
+  inseridoPor String
 
-  palpites      Palpite[] // relação para calcular pontuação
+  palpites Palpite[]
 
   @@map("resultados")
 }
@@ -143,10 +146,10 @@ model Resultado {
 // ─────────────────────────────────────────
 
 enum StatusPalpite {
-  PENDENTE   // resultado ainda não inserido
-  ACERTO_PLACAR    // 3 pontos
-  ACERTO_RESULTADO // 1 ponto
-  ERRO             // 0 pontos
+  PENDENTE
+  ACERTO_PLACAR
+  ACERTO_VENCEDOR
+  ERRO
 }
 
 model Palpite {

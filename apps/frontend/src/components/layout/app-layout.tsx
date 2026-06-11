@@ -38,6 +38,7 @@ import { useAuth } from '@/hooks/use-auth'
 const navPrincipal = [
   { titulo: 'Painel', href: '/dashboard', icone: LayoutDashboard },
   { titulo: 'Jogos e Palpites', href: '/jogos', icone: ClipboardList },
+  { titulo: 'Meus Palpites', href: '/meus-palpites', icone: ClipboardList },
   { titulo: 'Ranking', href: '/ranking', icone: Trophy },
 ]
 

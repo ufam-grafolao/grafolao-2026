@@ -1,13 +1,6 @@
+import { Usuario } from '@/types/usuario'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-
-interface Usuario {
-  id: string
-  nome: string
-  email: string
-  avatarUrl: string | null
-  role: 'ADMIN' | 'PARTICIPANTE'
-}
 
 interface AuthStore {
   token: string | null

@@ -127,23 +127,10 @@ cd grafolao-2026
 
 ### 2. Configure as variáveis de ambiente
 
-**Backend — desenvolvimento local (`apps/backend/.env`):**
+**Backend — Docker (`apps/backend/.env`):**
 ```env
-DATABASE_URL="postgresql://postgres:SENHA@db.xxxx.supabase.co:5432/postgres"
-JWT_SECRET="seu_jwt_secret"
-PORT=3333
-HOST=0.0.0.0
-NODE_ENV=development
-GOOGLE_CLIENT_ID="seu_client_id.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="seu_client_secret"
-GOOGLE_CALLBACK_URL="http://localhost:3333/auth/google/callback"
-FRONTEND_URL="http://localhost:5173"
-```
-
-**Backend — Docker (`apps/backend/.env.docker`):**
-```env
-DATABASE_URL="postgresql://postgres:SENHA@db.xxxx.supabase.co:6543/postgres?pgbouncer=true"
-JWT_SECRET="seu_jwt_secret"
+DATABASE_URL="postgresql://postgres:grafolao123@db:5432/grafolao"
+JWT_SECRET="grafolao_secret_2026"
 PORT=3333
 HOST=0.0.0.0
 NODE_ENV=development
@@ -158,47 +145,27 @@ FRONTEND_URL="http://localhost:5173"
 VITE_API_URL=http://localhost:3333
 ```
 
-### 3. Configure o banco de dados
-
+### 3. Rodar com Docker (recomendado para devs)
+ 
 ```bash
-cd apps/backend
-
-# Aplica o schema no Supabase
-npx prisma db push
-
-# Popula o banco com times e jogos da Copa 2026
-npx tsx src/shared/utils/seed.ts
-
-cd ../..
+docker compose up --build
 ```
-
-### 4. Rodar com Docker (recomendado)
-
+ 
+Na primeira vez, aplica o schema e o seed:
+ 
 ```bash
-docker compose up
+docker compose exec backend npx prisma db push
+docker compose exec backend npx tsx src/db/seed.ts
 ```
-
+ 
 | Serviço | URL |
 |---|---|
 | Frontend | http://localhost:5173 |
 | Backend | http://localhost:3333 |
 | Health check | http://localhost:3333/health |
+| PostgreSQL | localhost:5432 |
 
-### 5. Rodar localmente (sem Docker)
-
-```bash
-# Terminal 1 — backend
-cd apps/backend
-npm install
-npm run dev
-
-# Terminal 2 — frontend
-cd apps/frontend
-npm install
-npm run dev
-```
-
-### 6. Primeiro acesso
+### 4. Primeiro acesso
 
 1. Acesse `http://localhost:5173`
 2. Clique em **Entrar com Google**
@@ -225,4 +192,4 @@ npm run dev
 
 - [Samuel Davi](https://github.com/Samuel-Davi)
 - [Victor Hugo](https://github.com/vhodm)
-- [Paulo](https://github.com/plaaeo)
+- [Paulo Victor](https://github.com/plaaeo)
