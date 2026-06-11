@@ -5,11 +5,13 @@ import { useNavigate } from 'react-router-dom'
 import { useJogosHoje } from '@/hooks/use-jogos-hoje'
 import { Skeleton } from '@/components/ui/skeleton'
 import JogoCard from '@/components/jogos/jogo-card'
+import { useResumo } from '@/hooks/use-resumo'
 
 export function DashboardPage() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
   const { data: jogos, isLoading } = useJogosHoje()
+  const { data: resumo, isLoading: loadingResumo } = useResumo()
 
   return (
     <div className="flex flex-col gap-6">
@@ -22,7 +24,7 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -30,18 +32,42 @@ export function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">0</p>
+            {loadingResumo
+              ? <Skeleton className="h-9 w-16" />
+              : <p className="text-3xl font-semibold">{resumo?.pontos ?? 0}</p>
+            }
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Posição no ranking
+              Acertos Completos
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">—</p>
+            {loadingResumo
+              ? <Skeleton className="h-9 w-16" />
+              : <p className="text-3xl font-semibold">
+                  {resumo?.acertosCompletos ?? 0}
+                </p>
+            }
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Acertos Parciais
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingResumo
+              ? <Skeleton className="h-9 w-16" />
+              : <p className="text-3xl font-semibold">
+                  {resumo?.acertosParciais ?? 0}
+                </p>
+            }
           </CardContent>
         </Card>
 
@@ -52,7 +78,10 @@ export function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">0</p>
+            {loadingResumo
+              ? <Skeleton className="h-9 w-16" />
+              : <p className="text-3xl font-semibold">{resumo?.totalPalpites ?? 0}</p>
+            }
           </CardContent>
         </Card>
       </div>

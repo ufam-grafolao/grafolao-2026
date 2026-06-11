@@ -4,6 +4,7 @@ import {
   upsertUsuario,
   montarPayloadJwt,
   buscarUsuarioPorId,
+  buscarResumoUsuario,
 } from './auth.service.js'
 import type { JwtPayload } from './auth.schema.js'
 
@@ -63,4 +64,10 @@ export async function meController(request: FastifyRequest, reply: FastifyReply)
 
 export async function logoutController(_request: FastifyRequest, reply: FastifyReply) {
   return reply.send({ message: 'Logout realizado. Remova o token do cliente.' })
+}
+
+export async function resumoController(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.user as JwtPayload
+  const resumo = await buscarResumoUsuario(id)
+  return reply.send(resumo)
 }

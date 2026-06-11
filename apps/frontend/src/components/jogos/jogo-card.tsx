@@ -43,7 +43,6 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     const nomeVisitante = jogo.timeVisitante?.nome ?? jogo.timeVisitanteRef ?? '?'
     const codigoCasa = getBandeira(nomeCasa)
     const codigoVisitante = getBandeira(nomeVisitante)
-    const heightClass = jogo.status === 'ENCERRADO' ? 'h-4/5' : 'h-2/5'
 
     // — palpite
     const { mutate: salvaPalpite, isPending, isError, error } = usePalpitar()
@@ -103,8 +102,8 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     }, [isError, error])
 
     return (
-        <Card className="max-w-[400px] max-h-[200px] hover:border-primary/50 transition-colors">
-            <CardContent className="h-full pt-1 pb-2">
+        <Card className="max-w-[400px] hover:border-primary/50 transition-colors">
+            <CardContent className="pt-1 pb-2">
                 <div className="h-1/5 flex items-center justify-between gap-2 mb-4">
                     <span className="text-xs text-muted-foreground">
                         {jogo.grupo ?? jogo.fase}, {getRodada(jogo.fase, jogo.rodada)}
@@ -114,7 +113,7 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                     </span>
                 </div>
 
-                <div className={`${heightClass} flex items-start justify-around gap-3`}>
+                <div className="flex items-start justify-around gap-3 mb-3">
                     <div className="w-1/4 flex flex-col items-center gap-2">
                         {codigoCasa && <span className={`fi fi-${codigoCasa} rounded-full text-3xl`}/>}
                         <span className="font-medium text-sm text-center">{nomeCasa}</span>
@@ -157,6 +156,23 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                         <span className="font-medium text-sm text-center">{nomeVisitante}</span>
                     </div>
                 </div>
+
+                {jogo.status === 'ENCERRADO' && palpiteExistente && (
+                    <div className={`text-xs text-center pt-2 border-t border-border font-medium ${
+                        palpiteExistente.status === 'ACERTO_PLACAR'
+                        ? 'text-green-600 dark:text-green-400'
+                        : palpiteExistente.status === 'ACERTO_RESULTADO'
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-muted-foreground'
+                    }`}>
+                        {palpiteExistente.status === 'ACERTO_PLACAR' && '🎯 Placar exato! '}
+                        {palpiteExistente.status === 'ACERTO_RESULTADO' && '✅ Resultado certo! '}
+                        {palpiteExistente.status === 'ERRO' && '❌ '}
+                        Seu palpite: {palpiteExistente.golsCasa} – {palpiteExistente.golsVisitante}
+                        {' · '}
+                        <span className="font-semibold">{palpiteExistente.pontos} pts</span>
+                    </div>
+                )}
 
                 {!palpiteLiberado && mostrarBotaoPalpite && jogo.status === 'AGENDADO' && (
                 <Button

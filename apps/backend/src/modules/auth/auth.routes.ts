@@ -1,9 +1,10 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, RouteHandlerMethod } from 'fastify'
 import {
   googleLoginController,
   googleCallbackController,
   meController,
   logoutController,
+  resumoController,
 } from './auth.controller.js'
 import { meResponseSchema, logoutResponseSchema } from './auth.schema.js'
 
@@ -29,4 +30,8 @@ export async function authRoutes(app: FastifyInstance) {
     preHandler: [app.authenticate],
     schema: { response: logoutResponseSchema },
   }, logoutController)
+
+  app.get('/auth/me/resumo', {
+    preHandler: [app.authenticate],
+  }, resumoController as RouteHandlerMethod)
 }

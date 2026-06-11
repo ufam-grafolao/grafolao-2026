@@ -5,3 +5,10 @@ export interface Usuario {
   avatarUrl: string | null
   role: 'ADMIN' | 'PARTICIPANTE'
 }
+
+export interface Resumo {
+  pontos: number
+  totalPalpites: number,
+  acertosCompletos: number,
+  acertosParciais: number,
+}

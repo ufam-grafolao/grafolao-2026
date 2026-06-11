@@ -66,3 +66,34 @@ export async function buscarUsuarioPorId(id: string): Promise<UsuarioMeResponse 
     },
   }) as Promise<UsuarioMeResponse | null>
 }
+
+export async function buscarResumoUsuario(usuarioId: string) {
+  const [agregado, totalPalpites, acertosCompletos, acertosParciais] = await Promise.all([
+    prisma.palpite.aggregate({
+      where: { usuarioId },
+      _sum: { pontos: true },
+    }),
+    prisma.palpite.count({
+      where: { usuarioId },
+    }),
+    prisma.palpite.count({
+      where: {
+        usuarioId,
+        status: { in: ['ACERTO_PLACAR'] },
+      },
+    }),
+    prisma.palpite.count({
+      where: {
+        usuarioId,
+        status: { in: ['ACERTO_VENCEDOR'] },
+      },
+    }),
+  ])
+
+  return {
+    pontos: agregado._sum.pontos ?? 0,
+    totalPalpites,
+    acertosCompletos,
+    acertosParciais
+  }
+}

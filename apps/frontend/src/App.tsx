@@ -7,6 +7,7 @@ import { AuthCallbackPage } from '@/pages/auth-callback'
 import { DashboardPage } from '@/pages/dashboard'
 import JogosPalpitesPage from './pages/jogos-palpites'
 import AdminPage from './pages/admin'
+import MeusPalpitesPage from './pages/meus-palpites'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/meus-palpites" element={<MeusPalpitesPage />} />
             <Route path="/jogos" element={<JogosPalpitesPage/>} />
             <Route path="/ranking" element={<div>Ranking — em breve</div>} />
             <Route path="/grafos/confrontos" element={<div>Grafo de Confrontos — em breve</div>} />

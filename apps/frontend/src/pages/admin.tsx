@@ -9,6 +9,8 @@ import { useJogosPendentes } from '@/hooks/use-jogos-pendentes'
 import { useInserirResultado } from '@/hooks/use-inserir-resultado'
 import { Loader2, Plus, X } from 'lucide-react'
 import { JogoPendente } from '@/types/jogo'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useJogosEncerrados } from '@/hooks/use-jogos-encerrados'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,7 +33,14 @@ function Bandeira({ nome }: { nome: string }) {
 // ─── Formulário de resultado ──────────────────────────────────────────────────
 
 interface FormResultadoProps {
-  jogo: JogoPendente
+  jogo: JogoPendente & {
+    resultado?: {
+      golsCasa: number
+      golsVisitante: number
+      artilheirosCasa: string[]
+      artilheirosVisitante: string[]
+    } | null
+  }
   onFechar: () => void
 }
 
@@ -41,10 +50,10 @@ function FormResultado({ jogo, onFechar }: FormResultadoProps) {
   const nomeCasa      = jogo.timeCasa?.nome      ?? jogo.timeCasaRef      ?? '?'
   const nomeVisitante = jogo.timeVisitante?.nome ?? jogo.timeVisitanteRef ?? '?'
 
-  const [golsCasa,      setGolsCasa]      = useState('')
-  const [golsVisitante, setGolsVisitante] = useState('')
-  const [artCasa,       setArtCasa]       = useState<string[]>([])
-  const [artVisitante,  setArtVisitante]  = useState<string[]>([])
+  const [golsCasa,      setGolsCasa]      = useState(String(jogo.resultado?.golsCasa      ?? ''))
+  const [golsVisitante, setGolsVisitante] = useState(String(jogo.resultado?.golsVisitante ?? ''))
+  const [artCasa,       setArtCasa]       = useState<string[]>(jogo.resultado?.artilheirosCasa      ?? [])
+  const [artVisitante,  setArtVisitante]  = useState<string[]>(jogo.resultado?.artilheirosVisitante ?? [])
   const [novoArtCasa,       setNovoArtCasa]       = useState('')
   const [novoArtVisitante,  setNovoArtVisitante]  = useState('')
 
@@ -284,26 +293,21 @@ function JogoPendenteCard({ jogo }: JogoPendenteCardProps) {
 
 export default function AdminPage() {
   const { data: jogosPendentes, isLoading } = useJogosPendentes()
+  const { data: jogosEncerrados, isLoading: loadingEncerrados } = useJogosEncerrados()
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Administração</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Insira os resultados dos jogos para calcular a pontuação dos participantes.
-        </p>
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-medium">Jogos pendentes</h2>
-          {!isLoading && (
-            <span className="text-xs text-muted-foreground">
-              {jogosPendentes?.length ?? 0} jogos sem resultado
-            </span>
+    <Tabs defaultValue="pendentes" className="w-full">
+      <TabsList variant="line">
+        <TabsTrigger value="pendentes">
+          Pendentes
+          {jogosPendentes && jogosPendentes.length > 0 && (
+            <span className="ml-1 text-xs text-muted-foreground">({jogosPendentes.length})</span>
           )}
-        </div>
+        </TabsTrigger>
+        <TabsTrigger value="encerrados">Encerrados</TabsTrigger>
+      </TabsList>
 
+      <TabsContent className="mt-4" value="pendentes">
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -323,7 +327,29 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </div>
+      </TabsContent>
+
+      <TabsContent className="mt-4" value="encerrados">
+        {loadingEncerrados ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 rounded-xl" />
+            ))}
+          </div>
+        ) : jogosEncerrados && jogosEncerrados.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {jogosEncerrados.map(jogo => (
+              <JogoPendenteCard key={jogo.id} jogo={jogo} />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-10 text-center text-muted-foreground text-sm">
+              Nenhum jogo encerrado ainda.
+            </CardContent>
+          </Card>
+        )}
+      </TabsContent>
+    </Tabs>
   )
 }
