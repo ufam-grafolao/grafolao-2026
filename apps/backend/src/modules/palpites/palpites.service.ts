@@ -146,7 +146,7 @@ export async function calcularPontuacaoJogo(jogoId: string) {
     const status = acertouPlacar
       ? 'ACERTO_PLACAR'
       : acertouResultado
-      ? 'ACERTO_RESULTADO'
+      ? 'ACERTO_VENCEDOR'
       : 'ERRO'
 
     await prisma.palpite.update({

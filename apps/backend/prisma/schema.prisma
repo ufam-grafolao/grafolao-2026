@@ -146,10 +146,10 @@ model Resultado {
 // ─────────────────────────────────────────
 
 enum StatusPalpite {
-  PENDENTE   // resultado ainda não inserido
-  ACERTO_PLACAR    // 3 pontos
-  ACERTO_RESULTADO // 1 ponto
-  ERRO             // 0 pontos
+  PENDENTE
+  ACERTO_PLACAR
+  ACERTO_VENCEDOR
+  ERRO
 }
 
 model Palpite {
