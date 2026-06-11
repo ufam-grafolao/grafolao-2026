@@ -11,18 +11,9 @@ import { Loader2, Plus, X } from 'lucide-react'
 import { JogoPendente } from '@/types/jogo'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useJogosEncerrados } from '@/hooks/use-jogos-encerrados'
+import { formatarDataHoraJogo } from '@/lib/utils'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatarDataHora(dataHora: string) {
-  return new Date(dataHora).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'America/Manaus',
-  })
-}
 
 function Bandeira({ nome }: { nome: string }) {
   const codigo = getBandeira(nome)
@@ -260,7 +251,7 @@ function JogoPendenteCard({ jogo }: JogoPendenteCardProps) {
             {jogo.grupo ?? 'Mata-mata'} · {jogo.rodada}
           </span>
           <Badge variant="secondary" className="text-xs">
-            {formatarDataHora(jogo.dataHora)}
+            {formatarDataHoraJogo(jogo.dataHora)}
           </Badge>
         </div>
 

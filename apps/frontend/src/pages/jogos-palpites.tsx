@@ -8,6 +8,7 @@ import { useJogos } from "@/hooks/use-jogos"
 import { useJogosHoje } from "@/hooks/use-jogos-hoje"
 import { useMeusPalpites } from "@/hooks/use-meus-palpites"
 import { Jogo } from "@/types/jogo"
+import { Clock } from "lucide-react"
 
 
 function JogosGrid({ jogos, isLoading, palpites}: {
@@ -61,6 +62,10 @@ export default function JogosPalpitesPage() {
           <TabsTrigger value="todos">Todos</TabsTrigger>
           <TabsTrigger value="hoje">Hoje</TabsTrigger>
         </TabsList>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2 mb-1">
+          <Clock className="h-3 w-3" />
+          <span>Horários em GMT-4 (horário de Manaus)</span>
+        </div>
 
         <TabsContent className="flex-1 overflow-y-auto pr-2 mt-4" value="todos">
           <JogosGrid

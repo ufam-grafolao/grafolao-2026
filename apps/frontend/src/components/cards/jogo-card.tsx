@@ -10,6 +10,10 @@ import { Input } from "../ui/input";
 import usePalpitar from "@/hooks/use-palpitar";
 import { Loader2 } from "lucide-react";
 import { PalpiteExistente } from "@/types/palpites";
+import { getNomePt } from "@/lib/nomes-times";
+import { formatarDataJogo, formatarHoraJogo } from "@/lib/utils";
+
+
 
 const statusLabel: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   AGENDADO:     { label: 'Agendado',     variant: 'secondary' },
@@ -18,12 +22,16 @@ const statusLabel: Record<string, { label: string; variant: 'default' | 'seconda
   BLOQUEADO:    { label: 'Bloqueado',    variant: 'outline' },
 }
 
-function formatarHora(dataHora: string) {
-  return new Date(dataHora).toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'America/Manaus',
-  })
+function getStatusEfetivo(jogo: Jogo): string {
+  if (jogo.status === 'ENCERRADO') return 'ENCERRADO'
+  if (jogo.status === 'BLOQUEADO') return 'BLOQUEADO'
+  if (jogo.status === 'EM_ANDAMENTO') return 'EM_ANDAMENTO'
+  
+  const agora = new Date()
+  const inicio = new Date(formatarHoraJogo(jogo.dataHora))
+  if (agora >= inicio) return 'EM_ANDAMENTO'
+  
+  return 'AGENDADO'
 }
 
 interface JogoCardProps {
@@ -38,11 +46,16 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     const estaNaPaginaJogos = useLocation().pathname === '/jogos'
 
     // — dados do jogo
-    const status = statusLabel[jogo.status]
-    const nomeCasa = jogo.timeCasa?.nome ?? jogo.timeCasaRef ?? '?'
-    const nomeVisitante = jogo.timeVisitante?.nome ?? jogo.timeVisitanteRef ?? '?'
-    const codigoCasa = getBandeira(nomeCasa)
-    const codigoVisitante = getBandeira(nomeVisitante)
+    const statusEfetivo = getStatusEfetivo(jogo)
+    const status = statusLabel[statusEfetivo]
+    const nomeOriginalCasa      = jogo.timeCasa?.nome      ?? jogo.timeCasaRef      ?? '?'
+    const nomeOriginalVisitante = jogo.timeVisitante?.nome ?? jogo.timeVisitanteRef ?? '?'
+
+    const nomeCasa      = getNomePt(nomeOriginalCasa)
+    const nomeVisitante = getNomePt(nomeOriginalVisitante)
+
+    const codigoCasa      = getBandeira(nomeOriginalCasa)
+    const codigoVisitante = getBandeira(nomeOriginalVisitante)
 
     // — palpite
     const { mutate: salvaPalpite, isPending, isError, error } = usePalpitar()
@@ -55,6 +68,7 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     const [palpiteLiberado, setPalpiteLiberado] = useState(false)
 
     const liberarPalpite = () => {
+        if (statusEfetivo !== 'AGENDADO') return
         if (!estaNaPaginaJogos) {
             navigate('/jogos')
             return
@@ -63,6 +77,7 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     }
 
     const confirmarPalpite = () => {
+        if (statusEfetivo !== 'AGENDADO') return
         if (!palpiteLiberado) return;
 
         if (palpiteConfirmado) {
@@ -104,33 +119,38 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     return (
         <Card className="max-w-[400px] hover:border-primary/50 transition-colors">
             <CardContent className="pt-1 pb-2">
-                <div className="h-1/5 flex items-center justify-between gap-2 mb-4">
+                <div className="h-1/5 grid grid-cols-3 gap-2 mb-4">
                     <span className="text-xs text-muted-foreground">
                         {jogo.grupo ?? jogo.fase}, {getRodada(jogo.fase, jogo.rodada)}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-center">
+                        {formatarDataJogo(jogo.dataHora)}
+                    </span>
+                    <span className="text-xs text-center text-muted-foreground">
                         🏟️ {jogo.local}
                     </span>
                 </div>
 
-                <div className="flex items-start justify-around gap-3 mb-3">
+                <div className="flex justify-around gap-3 mb-3">
                     <div className="w-1/4 flex flex-col items-center gap-2">
                         {codigoCasa && <span className={`fi fi-${codigoCasa} rounded-full text-3xl`}/>}
-                        <span className="font-medium text-sm text-center">{nomeCasa}</span>
+                        <span className="font-medium text-sm text-center leading-tight line-clamp-2 min-h-[2.5rem]">
+                            {nomeCasa}
+                        </span>
                     </div>
 
-                    {jogo.status === 'ENCERRADO' && jogo.resultado ? (
+                    {statusEfetivo === 'ENCERRADO' && jogo.resultado && (
                         <div className="w-1/2 flex flex-col items-center">
                             <span className="font-bold text-lg px-2 tabular-nums">
                                 {jogo.resultado.golsCasa} - {jogo.resultado.golsVisitante}
                             </span>
                             <span className="text-muted-foreground mb-2">
-                                {jogo.status}
+                                {statusEfetivo}
                             </span>
-                            <div className="flex items-center gap-4">
+                            {/* <div className="grid grid-cols-3 w-full items-center gap-4">
                                 <div className="flex flex-col items-end gap-1">
                                     {jogo.resultado.artilheirosCasa.map((jogador, idx) => (
-                                        <span key={`c-${idx}`} className="text-xs text-muted-foreground">{jogador}</span>
+                                        <span key={`c-${idx}`} className="text-xs text-left text-muted-foreground">{jogador}</span>
                                     ))}
                                 </div>
 
@@ -141,23 +161,34 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                                         <span key={`v-${idx}`} className="text-xs text-muted-foreground">{jogador}</span>
                                     ))}
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
-                    ) : (
-                        <div className="w-1/2 flex flex-col items-center">
+                    )}
+
+                    {statusEfetivo === 'EM_ANDAMENTO' ? (
+                        <div className="w-1/2 h-full flex self-center flex-col items-center gap-1">
+                            <span className="text-lg font-medium text-destructive animate-pulse">
+                                ● Ao vivo
+                            </span>
+                        </div>
+                        ) : statusEfetivo !== 'ENCERRADO' && (
+                        <div className="w-1/2 flex mt-2 flex-col items-center">
                             <span className="font-bold text-lg px-2">
-                                {jogo.dataHora ? formatarHora(jogo.dataHora) : status.label}
+                            {jogo.dataHora ? formatarHoraJogo(jogo.dataHora) : status.label}
                             </span>
                         </div>
                     )}
 
                     <div className="w-1/4 flex flex-col items-center gap-2">
                         {codigoVisitante && <span className={`fi fi-${codigoVisitante} rounded-full text-3xl`}/>}
-                        <span className="font-medium text-sm text-center">{nomeVisitante}</span>
+                        <span className="font-medium text-sm text-center leading-tight line-clamp-2 min-h-[2.5rem]">
+                            {nomeVisitante}
+                        </span>
+
                     </div>
                 </div>
 
-                {jogo.status === 'ENCERRADO' && palpiteExistente && (
+                {statusEfetivo === 'ENCERRADO' && palpiteExistente && (
                     <div className={`text-xs text-center pt-2 border-t border-border font-medium ${
                         palpiteExistente.status === 'ACERTO_PLACAR'
                         ? 'text-green-600 dark:text-green-400'
@@ -174,18 +205,18 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                     </div>
                 )}
 
-                {!palpiteLiberado && mostrarBotaoPalpite && jogo.status === 'AGENDADO' && (
+                {!palpiteLiberado && mostrarBotaoPalpite && statusEfetivo === 'AGENDADO' && (
                 <Button
                     size="sm"
                     variant="outline"
-                    className="w-full mt-6"
+                    className="w-full mt-3"
                     onClick={() => liberarPalpite()}
                 >
                     Palpitar
                 </Button>
                 )}
 
-                {palpiteLiberado && jogo.status === 'AGENDADO' && (
+                {palpiteLiberado && statusEfetivo === 'AGENDADO' && (
                     <div className="w-full mt-6 flex gap-8">
                         <Input
                             min={0}
