@@ -1,10 +1,15 @@
 import { Jogo } from "@/types/jogo";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { getBandeira } from "@/lib/bandeiras";
 import { getRodada } from "@/lib/rodada";
+import { use, useEffect, useState } from "react";
+import { Input } from "../ui/input";
+import usePalpitar from "@/hooks/use-palpitar";
+import { Loader2 } from "lucide-react";
+import { PalpiteExistente } from "@/types/palpites";
 
 const statusLabel: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   AGENDADO:     { label: 'Agendado',     variant: 'secondary' },
@@ -21,26 +26,84 @@ function formatarHora(dataHora: string) {
   })
 }
 
-
 interface JogoCardProps {
     jogo: Jogo;
     mostrarBotaoPalpite?: boolean;
+    palpitesExistente?: PalpiteExistente[];
 }
 
-export default function JogoCard({ jogo, mostrarBotaoPalpite = false }: JogoCardProps) {
-    const navigate = useNavigate();
-    const status = statusLabel[jogo.status];
+export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesExistente }: JogoCardProps) {
+    // — navegação
+    const navigate = useNavigate()
+    const estaNaPaginaJogos = useLocation().pathname === '/jogos'
 
-    const nomeCasa = jogo.timeCasa?.nome ?? jogo.timeCasaRef ?? '?';
-    const nomeVisitante = jogo.timeVisitante?.nome ?? jogo.timeVisitanteRef ?? '?';
+    // — dados do jogo
+    const status = statusLabel[jogo.status]
+    const nomeCasa = jogo.timeCasa?.nome ?? jogo.timeCasaRef ?? '?'
+    const nomeVisitante = jogo.timeVisitante?.nome ?? jogo.timeVisitanteRef ?? '?'
+    const codigoCasa = getBandeira(nomeCasa)
+    const codigoVisitante = getBandeira(nomeVisitante)
+    const heightClass = jogo.status === 'ENCERRADO' ? 'h-4/5' : 'h-2/5'
 
-    const codigoCasa = getBandeira(nomeCasa);
-    const codigoVisitante = getBandeira(nomeVisitante);
+    // — palpite
+    const { mutate: salvaPalpite, isPending, isError, error } = usePalpitar()
+    const palpiteExistente = palpitesExistente?.find(p => p.jogo.id === jogo.id)
 
-    const heightClass = status.label === 'Encerrado' ? 'h-4/5' : 'h-2/5';
+    // — estado local
+    const [golsCasa, setGolsCasa] = useState<number | null>(null)
+    const [golsVisitante, setGolsVisitante] = useState<number | null>(null)
+    const [palpiteConfirmado, setPalpiteConfirmado] = useState(false)
+    const [palpiteLiberado, setPalpiteLiberado] = useState(false)
+
+    const liberarPalpite = () => {
+        if (!estaNaPaginaJogos) {
+            navigate('/jogos')
+            return
+        }
+        setPalpiteLiberado(true)
+    }
+
+    const confirmarPalpite = () => {
+        if (!palpiteLiberado) return;
+
+        if (palpiteConfirmado) {
+            setPalpiteConfirmado(false);
+            setGolsCasa(0);
+            setGolsVisitante(0);
+            return;
+        }
+
+        if ((golsCasa === null || golsVisitante === null) || (golsCasa < 0 || golsVisitante < 0)) {
+            alert('Por favor, insira um número válido de gols para ambos os times.');
+            return;
+        }
+
+        setPalpiteConfirmado(true);
+        salvaPalpite({
+            jogoId: jogo.id,
+            golsCasa,
+            golsVisitante,
+        })
+    }
+
+    useEffect(() => {
+        if (palpiteExistente) {
+            setGolsCasa(palpiteExistente.golsCasa)
+            setGolsVisitante(palpiteExistente.golsVisitante)
+            setPalpiteConfirmado(true)
+            setPalpiteLiberado(true)
+        }
+    }, [palpiteExistente?.id])
+
+    useEffect(() => {
+        if (isError) {
+            alert(error instanceof Error ? error.message : 'Erro ao salvar palpite');
+            setPalpiteConfirmado(false);
+        }
+    }, [isError, error])
 
     return (
-        <Card className="hover:border-primary/50 transition-colors">
+        <Card className="max-w-[400px] max-h-[200px] hover:border-primary/50 transition-colors">
             <CardContent className="h-full pt-1 pb-2">
                 <div className="h-1/5 flex items-center justify-between gap-2 mb-4">
                     <span className="text-xs text-muted-foreground">
@@ -95,15 +158,50 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false }: JogoCard
                     </div>
                 </div>
 
-                {mostrarBotaoPalpite && jogo.status === 'AGENDADO' && (
+                {!palpiteLiberado && mostrarBotaoPalpite && jogo.status === 'AGENDADO' && (
                 <Button
                     size="sm"
                     variant="outline"
                     className="w-full mt-6"
-                    onClick={() => navigate('/jogos')}
+                    onClick={() => liberarPalpite()}
                 >
                     Palpitar
                 </Button>
+                )}
+
+                {palpiteLiberado && jogo.status === 'AGENDADO' && (
+                    <div className="w-full mt-6 flex gap-8">
+                        <Input
+                            min={0}
+                            disabled={palpiteConfirmado}
+                            className="w-auto text-center"
+                            value={golsCasa !== null ? golsCasa : ''}
+                            onChange={(e) => setGolsCasa(e.target.value === '' ? null : Number(e.target.value))}
+                        />
+
+                        {isPending && (
+                            <Button disabled className="flex-1 bg-zinc-800 text-zinc-400">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Salvando...
+                            </Button>
+                        )}
+
+                        {!isPending && (
+                            <Button
+                                variant="outline"
+                                onClick={() => confirmarPalpite()}
+                                disabled={golsCasa === null || golsVisitante === null || golsCasa < 0 || golsVisitante < 0}
+                            >{palpiteConfirmado ? '🔁' : '✅'}</Button>
+                        )}
+
+                        <Input
+                            min={0}
+                            disabled={palpiteConfirmado}
+                            className="w-auto text-center"
+                            value={golsVisitante !== null ? golsVisitante : ''}
+                            onChange={(e) => setGolsVisitante(e.target.value === '' ? null : Number(e.target.value))}
+                        />
+                    </div>
                 )}
             </CardContent>
         </Card>

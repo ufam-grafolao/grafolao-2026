@@ -27,3 +27,16 @@ export interface Jogo {
   timeVisitanteRef: string | null
   resultado: Resultado | null
 }
+
+export interface JogoPendente {
+  id: string
+  rodada: string
+  grupo: string | null
+  dataHora: string
+  local: string
+  status: string
+  timeCasa: { nome: string } | null
+  timeVisitante: { nome: string } | null
+  timeCasaRef: string | null
+  timeVisitanteRef: string | null
+}
