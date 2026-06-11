@@ -1,14 +1,34 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: grafolao123
+      POSTGRES_DB: grafolao
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./apps/backend
     ports:
       - "3333:3333"
+      - "5555:5555" 
     env_file:
-      - ./apps/backend/.env.docker
+      - ./apps/backend/.env
     volumes:
       - ./apps/backend:/app
-      - /app/node_modules
+      - backend_modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3333/health"]
       interval: 10s
@@ -25,7 +45,12 @@ services:
       - ./apps/frontend/.env
     volumes:
       - ./apps/frontend:/app
-      - /app/node_modules
+      - frontend_modules:/app/node_modules
     depends_on:
       backend:
         condition: service_healthy
+
+volumes:
+  backend_modules:
+  frontend_modules:
+  pgdata:

@@ -41,7 +41,7 @@ async function seed() {
   console.log('🌱 Iniciando seed...')
  
   // Carrega o JSON do calendário
-  const { default: copa } = await import('../../../../data/copa2026.json', {
+  const { default: copa } = await import('../../data/copa2026.json', {
     assert: { type: 'json' },
   })
  
