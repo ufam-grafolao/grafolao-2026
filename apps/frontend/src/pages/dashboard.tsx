@@ -1,8 +1,15 @@
 import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { useNavigate } from 'react-router-dom'
+import { useJogosHoje } from '@/hooks/use-jogos-hoje'
+import { Skeleton } from '@/components/ui/skeleton'
+import JogoCard from '@/components/jogos/jogo-card'
 
 export function DashboardPage() {
   const { usuario } = useAuth()
+  const navigate = useNavigate()
+  const { data: jogos, isLoading } = useJogosHoje()
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,17 +57,36 @@ export function DashboardPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Copa do Mundo 2026</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            A Copa começa em <span className="font-medium text-foreground">11 de junho de 2026</span>.
-            Faça seus palpites antes de cada jogo!
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold">Jogos de hoje</h2>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/jogos')}>
+          Ver todos →
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+      ) : jogos && jogos.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {jogos.map((jogo) => (
+            <JogoCard key={jogo.id} jogo={jogo} mostrarBotaoPalpite />
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground text-sm">
+            Nenhum jogo hoje. Aproveite pra ver os próximos jogos!
+            <Button variant="link" className="block mx-auto mt-2" onClick={() => navigate('/jogos')}>
+              Ver calendário completo
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      
     </div>
   )
 }

@@ -19,7 +19,12 @@ const jogoSelect = {
     select: { id: true, nome: true, codigo: true, grupo: true },
   },
   resultado: {
-    select: { golsCasa: true, golsVisitante: true },
+    select: {
+      golsCasa: true,
+      golsVisitante: true,
+      artilheirosCasa: true,
+      artilheirosVisitante: true,
+    },
   },
 }
 

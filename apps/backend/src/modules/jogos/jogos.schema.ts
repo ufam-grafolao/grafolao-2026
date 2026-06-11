@@ -69,6 +69,8 @@ const resultadoSchema = {
   properties: {
     golsCasa:      { type: 'number' },
     golsVisitante: { type: 'number' },
+    artilheirosCasa:      { type: 'array', items: { type: 'string' } },
+    artilheirosVisitante: { type: 'array', items: { type: 'string' } },
   },
 }
 
