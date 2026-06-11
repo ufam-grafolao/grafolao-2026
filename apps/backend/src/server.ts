@@ -2,7 +2,7 @@ import Fastify from 'fastify'
 import fastifyCors from '@fastify/cors'
 import fastifyJwt from '@fastify/jwt'
 import fastifyCookie from '@fastify/cookie'
-import fastifyOAuth2 from '@fastify/oauth2'
+import fastifyOAuth2, { OAuth2Namespace } from '@fastify/oauth2'
 
 import { authRoutes } from './modules/auth/auth.routes.js'
 import { jogosRoutes } from './modules/jogos/jogos.routes.js'
@@ -36,7 +36,12 @@ await app.register(fastifyOAuth2, {
       id: process.env.GOOGLE_CLIENT_ID ?? '',
       secret: process.env.GOOGLE_CLIENT_SECRET ?? '',
     },
-    auth: fastifyOAuth2.GOOGLE_CONFIGURATION,
+    auth: {
+      authorizeHost: 'https://accounts.google.com',
+      authorizePath: '/o/oauth2/v2/auth',
+      tokenHost: 'https://oauth2.googleapis.com',
+      tokenPath: '/token',
+    },
   },
   callbackUri: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3333/auth/google/callback',
 })

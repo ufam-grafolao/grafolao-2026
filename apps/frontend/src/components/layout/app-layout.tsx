@@ -72,7 +72,7 @@ export function AppLayout() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <Sidebar>
-          <SidebarHeader className="border-b p-4">
+          <SidebarHeader className="h-16 border-b p-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">🏆</span>
               <div>
@@ -170,7 +170,7 @@ export function AppLayout() {
         </Sidebar>
 
         <div className="flex flex-col flex-1 min-w-0">
-          <header className="flex items-center gap-2 border-b px-4 h-14 shrink-0">
+          <header className="h-16 flex items-center gap-2 border-b px-4 h-14 shrink-0">
             <SidebarTrigger />
             <div className="flex-1" />
             <ThemeToggle />

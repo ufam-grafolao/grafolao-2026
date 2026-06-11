@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
 import { useJogosHoje } from '@/hooks/use-jogos-hoje'
 import { Skeleton } from '@/components/ui/skeleton'
-import JogoCard from '@/components/jogos/jogo-card'
+import JogoCard from '@/components/cards/jogo-card'
 import { useResumo } from '@/hooks/use-resumo'
 
 export function DashboardPage() {
