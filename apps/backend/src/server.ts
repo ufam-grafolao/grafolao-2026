@@ -5,6 +5,7 @@ import fastifyCookie from '@fastify/cookie'
 import fastifyOAuth2 from '@fastify/oauth2'
 
 import { authRoutes } from './modules/auth/auth.routes.js'
+import { jogosRoutes } from './modules/jogos/jogos.routes.js'
 
 const app = Fastify({
   logger: {
@@ -50,6 +51,7 @@ app.decorate('authenticate', async (request: any, reply: any) => {
 // ─── Rotas ──────────────────────────────────────────
 
 await app.register(authRoutes)
+await app.register(jogosRoutes)
 
 // Health check
 app.get('/health', async () => {
