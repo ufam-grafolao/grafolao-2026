@@ -1,6 +1,5 @@
 import { API_URL } from "@/lib/env";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { error } from "console";
 import { useAuth } from "./use-auth";
 
 interface PalpitarInput {
