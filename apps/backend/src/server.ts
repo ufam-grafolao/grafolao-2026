@@ -3,6 +3,7 @@ import fastifyCors from '@fastify/cors'
 import fastifyJwt from '@fastify/jwt'
 import fastifyCookie from '@fastify/cookie'
 import fastifyOAuth2, { OAuth2Namespace } from '@fastify/oauth2'
+import rateLimit from '@fastify/rate-limit'
 
 import { authRoutes } from './modules/auth/auth.routes.js'
 import { jogosRoutes } from './modules/jogos/jogos.routes.js'
@@ -13,6 +14,7 @@ const app = Fastify({
   logger: {
     level: process.env.NODE_ENV === 'development' ? 'info' : 'warn',
   },
+  bodyLimit: 1048576,
 })
 
 // ─── Plugins ────────────────────────────────────────
@@ -26,6 +28,14 @@ await app.register(fastifyCookie)
 
 await app.register(fastifyJwt, {
   secret: process.env.JWT_SECRET ?? 'grafolao_dev_secret',
+})
+
+await app.register(rateLimit, {
+  max: 100,
+  timeWindow: '1 minute',
+  errorResponseBuilder: () => ({
+    error: 'Muitas requisições. Tente novamente em 1 minuto.',
+  }),
 })
 
 await app.register(fastifyOAuth2, {
