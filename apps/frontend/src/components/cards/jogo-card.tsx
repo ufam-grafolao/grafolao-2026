@@ -26,11 +26,10 @@ function getStatusEfetivo(jogo: Jogo): string {
   if (jogo.status === 'ENCERRADO') return 'ENCERRADO'
   if (jogo.status === 'BLOQUEADO') return 'BLOQUEADO'
   if (jogo.status === 'EM_ANDAMENTO') return 'EM_ANDAMENTO'
-  
-  const agora = new Date()
-  const inicio = new Date(formatarHoraJogo(jogo.dataHora))
-  if (agora >= inicio) return 'EM_ANDAMENTO'
-  
+
+  const inicioUtcReal = new Date(new Date(jogo.dataHora).getTime() + 4 * 60 * 60 * 1000)
+  if (new Date() >= inicioUtcReal) return 'EM_ANDAMENTO'
+
   return 'AGENDADO'
 }
 
@@ -60,6 +59,8 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     // — palpite
     const { mutate: salvaPalpite, isPending, isError, error } = usePalpitar()
     const palpiteExistente = palpitesExistente?.find(p => p.jogo.id === jogo.id)
+    const edicoesRestantes = 2 - (palpiteExistente?.totalEdicoes ?? 0)
+    const podeEditar = edicoesRestantes > 0
 
     // — estado local
     const [golsCasa, setGolsCasa] = useState<number | null>(null)
@@ -237,8 +238,22 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                             <Button
                                 variant="outline"
                                 onClick={() => confirmarPalpite()}
-                                disabled={golsCasa === null || golsVisitante === null || golsCasa < 0 || golsVisitante < 0}
-                            >{palpiteConfirmado ? '🔁' : '✅'}</Button>
+                                disabled={
+                                golsCasa === null ||
+                                golsVisitante === null ||
+                                golsCasa < 0 ||
+                                golsVisitante < 0 ||
+                                (palpiteConfirmado && !podeEditar)
+                                }
+                                title={!podeEditar ? 'Limite de edições atingido' : undefined}
+                            >
+                                {palpiteConfirmado
+                                ? podeEditar
+                                    ? `🔁 (${edicoesRestantes}x)`
+                                    : '🔒'
+                                : '✅'
+                                }
+                            </Button>
                         )}
 
                         <Input

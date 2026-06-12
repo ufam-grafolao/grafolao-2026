@@ -157,6 +157,7 @@ model Palpite {
   usuarioId   String
   jogoId      String
   resultadoId String?
+  totalEdicoes  Int        @default(0)
 
   usuario     Usuario      @relation(fields: [usuarioId], references: [id])
   jogo        Jogo         @relation(fields: [jogoId], references: [id])

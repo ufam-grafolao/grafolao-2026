@@ -30,6 +30,7 @@ export default function usePalpitar() {
 
         onSuccess: () => {
             queryClient.invalidateQueries({queryKey: ['palpites']})
+            alert("Palpite salvo no banco!");
         }
     })
 }
