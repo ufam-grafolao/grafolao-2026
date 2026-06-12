@@ -9,6 +9,7 @@ import { authRoutes } from './modules/auth/auth.routes.js'
 import { jogosRoutes } from './modules/jogos/jogos.routes.js'
 import { palpitesRoutes } from './modules/palpites/palpites.routes.js'
 import { adminRoutes } from './modules/admin/admin.routes.js'
+import { comunidadeRoutes } from './modules/comunidade/comunidade.routes.js'
 
 const app = Fastify({
   logger: {
@@ -71,6 +72,7 @@ await app.register(authRoutes)
 await app.register(jogosRoutes)
 await app.register(palpitesRoutes)
 await app.register(adminRoutes)
+await app.register(comunidadeRoutes)
 
 // Health check
 app.get('/health', async () => {

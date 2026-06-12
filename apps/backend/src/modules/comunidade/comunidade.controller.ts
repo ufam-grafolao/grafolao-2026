@@ -1,0 +1,129 @@
+import { FastifyRequest, FastifyReply } from 'fastify'
+import {
+  criarComunidade,
+  listarComunidades,
+  entrarComunidade,
+  expulsarMembro,
+  promoverMembro,
+  deletarComunidade,
+  rankingComunidade,
+} from './comunidades.service.js'
+import type {
+  CriarComunidadeBody,
+  EntrarComunidadeBody,
+  PromoverMembroBody,
+} from './comunidade.schema.js'
+import type { JwtPayload as AuthJwtPayload } from '../auth/auth.schema.js'
+
+const errosHTTP: Record<string, number> = {
+  LIMITE_ATINGIDO: 403,
+  JA_MEMBRO:       409,
+  CODIGO_INVALIDO: 401,
+  SEM_PERMISSAO:   403,
+}
+
+function handleError(error: unknown, reply: FastifyReply) {
+  const msg = error instanceof Error ? error.message : 'ERRO_INTERNO'
+  const status = errosHTTP[msg] ?? 500
+  return reply.status(status).send({ error: msg })
+}
+
+// GET /comunidades
+
+export async function listarComunidadesController(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const { id: usuarioId } = request.user as AuthJwtPayload
+  const comunidades = await listarComunidades(usuarioId)
+  return reply.send(comunidades)
+}
+
+// POST /comunidades
+
+export async function criarComunidadeController(
+  request: FastifyRequest<{ Body: CriarComunidadeBody }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const comunidade = await criarComunidade(usuarioId, request.body)
+    return reply.status(201).send(comunidade)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+// POST /comunidades/:comunidadeId/entrar
+
+export async function entrarComunidadeController(
+  request: FastifyRequest<{ Params: { comunidadeId: string }; Body: EntrarComunidadeBody }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const membro = await entrarComunidade(usuarioId, request.params.comunidadeId, request.body)
+    return reply.status(201).send(membro)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+// DELETE /comunidades/:comunidadeId/membros/:membroId
+
+export async function expulsarMembroController(
+  request: FastifyRequest<{ Params: { comunidadeId: string; membroId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    await expulsarMembro(usuarioId, request.params.comunidadeId, request.params.membroId)
+    return reply.status(204).send()
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+// PATCH /comunidades/:comunidadeId/membros/promover
+
+export async function promoverMembroController(
+  request: FastifyRequest<{ Params: { comunidadeId: string }; Body: PromoverMembroBody }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const membro = await promoverMembro(usuarioId, request.params.comunidadeId, request.body)
+    return reply.send(membro)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+// DELETE /comunidades/:comunidadeId
+
+export async function deletarComunidadeController(
+  request: FastifyRequest<{ Params: { comunidadeId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    await deletarComunidade(usuarioId, request.params.comunidadeId)
+    return reply.status(204).send()
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+// GET /comunidades/:comunidadeId/ranking
+
+export async function rankingComunidadeController(
+  request: FastifyRequest<{ Params: { comunidadeId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const ranking = await rankingComunidade(request.params.comunidadeId)
+    return reply.send(ranking)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
