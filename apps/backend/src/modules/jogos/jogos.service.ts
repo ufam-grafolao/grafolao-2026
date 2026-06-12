@@ -45,12 +45,16 @@ export async function buscarJogos(filtros: JogosQueryParams = {}): Promise<JogoR
 
 // Busca jogos do dia atual
 
-export async function buscarJogosHoje() {
-  const hoje = new Date()
-  const inicioDia = new Date(hoje)
+export async function buscarJogosHoje(dataManaus?: string) {
+
+  const dataRef = dataManaus
+    ? new Date(dataManaus)
+    : new Date(new Date().getTime() - 4 * 60 * 60 * 1000)
+
+  const inicioDia = new Date(dataRef)
   inicioDia.setHours(0, 0, 0, 0)
 
-  const fimDia = new Date(hoje)
+  const fimDia = new Date(dataRef)
   fimDia.setHours(23, 59, 59, 999)
 
   return prisma.jogo.findMany({

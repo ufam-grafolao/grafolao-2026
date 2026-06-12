@@ -18,7 +18,11 @@ export async function jogosHojeController(
   _request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const jogos = await buscarJogosHoje()
+  const agora = new Date()
+  const agoraManaus = new Date(agora.getTime() - 4 * 60 * 60 * 1000)
+  const dataManaus = agoraManaus.toISOString().split('T')[0]
+
+  const jogos = await buscarJogosHoje(dataManaus)
   return reply.send(jogos)
 }
 
