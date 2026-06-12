@@ -25,7 +25,7 @@ export function useJogos(params: JogosParams = {}) {
       const res = await fetch(`${API_URL}/jogos?${query}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error('Falha ao buscar jogos')
+      if (!res.ok) throw new Error('Falha ao buscar jogos');
       return res.json()
     },
     enabled: !!token,

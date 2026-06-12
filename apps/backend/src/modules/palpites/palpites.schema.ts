@@ -21,6 +21,7 @@ export interface PalpiteResponse {
   status: StatusPalpite
   criadoEm: Date
   atualizadoEm: Date
+  totalEdicoes: number
   jogo: {
     id: string
     rodada: string
@@ -72,6 +73,7 @@ const palpiteSchema = {
     status:        { type: 'string' },
     criadoEm:      { type: 'string', format: 'date-time' },
     atualizadoEm:  { type: 'string', format: 'date-time' },
+    totalEdicoes:  { type: 'integer'},
     jogo:          jogoResumidoSchema,
   },
 }

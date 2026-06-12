@@ -5,6 +5,7 @@ export interface PalpiteExistente {
   golsVisitante: number
   pontos: number
   status: 'PENDENTE' | 'ACERTO_PLACAR' | 'ACERTO_RESULTADO' | 'ERRO'
+  totalEdicoes: number
   jogo: {
     id: string
     rodada: string

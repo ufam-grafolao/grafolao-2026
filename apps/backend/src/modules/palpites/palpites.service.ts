@@ -12,6 +12,7 @@ const palpiteSelect = {
   status: true,
   criadoEm: true,
   atualizadoEm: true,
+  totalEdicoes: true,
   jogo: {
     select: {
       id: true,
@@ -45,8 +46,10 @@ async function validarJogo(jogoId: string) {
   if (jogo.status === 'ENCERRADO' || jogo.status === 'EM_ANDAMENTO') {
     return { erro: 'Palpites encerrados para esse jogo', status: 403 }
   }
+  
+  const inicioUtcReal = new Date(new Date(jogo.dataHora).getTime() + 4 * 60 * 60 * 1000)
 
-  if (new Date() >= jogo.dataHora) {
+  if (new Date() >= inicioUtcReal) {
     return { erro: 'Prazo de palpite encerrado — o jogo já começou', status: 403 }
   }
 
@@ -57,27 +60,39 @@ async function validarJogo(jogoId: string) {
 
 export async function upsertPalpite(usuarioId: string, body: CriarPalpiteBody) {
   const validacao = await validarJogo(body.jogoId)
-
   if (validacao.erro) {
     return { erro: validacao.erro, status: validacao.status }
   }
 
+  const palpiteExistente = await prisma.palpite.findUnique({
+    where: {
+      usuarioId_jogoId: { usuarioId, jogoId: body.jogoId },
+    },
+    select: { id: true, totalEdicoes: true },
+  })
+
+  if (palpiteExistente && palpiteExistente.totalEdicoes >= 2) {
+    return {
+      erro: 'Limite de edições atingido — você só pode alterar seu palpite 2 vezes',
+      status: 403,
+    }
+  }
+
   const palpite = await prisma.palpite.upsert({
     where: {
-      usuarioId_jogoId: {
-        usuarioId,
-        jogoId: body.jogoId,
-      },
+      usuarioId_jogoId: { usuarioId, jogoId: body.jogoId },
     },
     update: {
       golsCasa: body.golsCasa,
       golsVisitante: body.golsVisitante,
+      totalEdicoes: { increment: 1 },
     },
     create: {
       usuarioId,
       jogoId: body.jogoId,
       golsCasa: body.golsCasa,
       golsVisitante: body.golsVisitante,
+      totalEdicoes: 0,
     },
     select: palpiteSelect,
   })
