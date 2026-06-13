@@ -1,14 +1,15 @@
-import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom'
+import { useLocation, Outlet, useNavigate, href } from 'react-router-dom'
 import {
   LayoutDashboard,
   ClipboardList,
-  Trophy,
+  // Trophy,
   GitFork,
   Network,
   Layers,
   Settings,
   LogOut,
   ChevronDown,
+  Users,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -39,13 +40,16 @@ const navPrincipal = [
   { titulo: 'Painel', href: '/dashboard', icone: LayoutDashboard },
   { titulo: 'Jogos e Palpites', href: '/jogos', icone: ClipboardList },
   { titulo: 'Meus Palpites', href: '/meus-palpites', icone: ClipboardList },
-  { titulo: 'Ranking', href: '/ranking', icone: Trophy },
+  // { titulo: 'Ranking', href: '/ranking', icone: Trophy },
+  { titulo: 'Comunidades', href: '/comunidades', icone: Users },
 ]
 
 const navGrafos = [
   { titulo: 'Grafo de Confrontos', href: '/grafos/confrontos', icone: GitFork },
-  { titulo: 'Caminho Mínimo', href: '/grafos/dag', icone: Network },
-  { titulo: 'Cliques', href: '/grafos/cliques', icone: Layers },
+  { titulo: 'Caminho Mínimo para o Título', href: '/grafos/dag', icone: Network },
+  { titulo: 'Cliques e Panelinhas', href: '/grafos/cliques', icone: Layers },
+  { titulo: 'Aventura da Zebra', href: '/grafos/mst', icone: Layers },
+  { titulo: 'Redes de Similaridades', href: '/grafos/redes', icone: Layers },
 ]
 
 const navAdmin = [
@@ -170,9 +174,11 @@ export function AppLayout() {
         </Sidebar>
 
         <div className="flex flex-col flex-1 min-w-0">
-          <header className="h-16 flex items-center gap-2 border-b px-4 h-14 shrink-0">
+          <header className="h-16 justify-between flex items-center gap-2 border-b px-4 h-14 shrink-0">
             <SidebarTrigger />
-            <div className="flex-1" />
+            <div className="flex-1 text-center">
+              <h1>Grafolão da Copa: Torneio de Palpiteiros</h1>
+            </div>
             <ThemeToggle />
           </header>
           <main className="flex-1 p-6 overflow-auto">

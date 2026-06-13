@@ -1,0 +1,347 @@
+import prisma from '../../db/prisma.js'
+import { randomBytes } from 'crypto'
+import type {
+  CriarComunidadeBody,
+  EntrarComunidadeBody,
+  PromoverMembroBody,
+  TipoComunidade,
+} from './comunidade.schema.js'
+
+const LIMITE_COMUNIDADES = 3
+
+export async function criarComunidade(usuarioId: string, data: CriarComunidadeBody) {
+  const usuario = await prisma.usuario.findUniqueOrThrow({
+    where: { id: usuarioId },
+    select: { comunidadesCriadas: true },
+  })
+
+  if (usuario.comunidadesCriadas >= LIMITE_COMUNIDADES) {
+    throw new Error('LIMITE_ATINGIDO')
+  }
+
+  const codigoCovite = data.tipo === 'PRIVADA'
+    ? randomBytes(6).toString('hex')
+    : null
+
+  const [comunidade] = await prisma.$transaction([
+    prisma.comunidade.create({
+      data: {
+        ...data,
+        codigoCovite,
+        donoId: usuarioId,
+        membros: {
+          create: { usuarioId, role: 'DONO' },
+        },
+      },
+    }),
+    prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { comunidadesCriadas: { increment: 1 } },
+    }),
+  ])
+
+  return comunidade
+}
+
+export async function listarComunidades(usuarioId: string) {
+  return prisma.comunidade.findMany({
+    where: {
+      ativo: true,
+      OR: [
+        { tipo: 'PUBLICA' },
+        { membros: { some: { usuarioId } } },
+      ],
+    },
+    include: {
+      membros: {
+        where: { usuarioId },
+        select: { role: true },
+      },
+    },
+    orderBy: { criadoEm: 'desc' },
+  })
+}
+
+export async function entrarComunidade(
+  usuarioId: string,
+  comunidadeId: string,
+  data: EntrarComunidadeBody
+) {
+  const comunidade = await prisma.comunidade.findUniqueOrThrow({
+    where: { id: comunidadeId, ativo: true },
+  })
+
+  const jaEMembro = await prisma.membroComunidade.findUnique({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+  if (jaEMembro) throw new Error('JA_MEMBRO')
+
+  if (comunidade.tipo === 'PRIVADA') {
+    if (!data.codigo || data.codigo !== comunidade.codigoCovite) {
+      throw new Error('CODIGO_INVALIDO')
+    }
+  }
+
+  return prisma.membroComunidade.create({
+    data: { comunidadeId, usuarioId, role: 'MEMBRO' },
+    include: { usuario: { select: { id: true, nome: true, avatarUrl: true } } },
+  })
+}
+
+export async function expulsarMembro(
+  solicitanteId: string,
+  comunidadeId: string,
+  membroId: string
+) {
+  const solicitante = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId: solicitanteId } },
+  })
+
+  if (!['DONO', 'MODERADOR'].includes(solicitante.role)) {
+    throw new Error('SEM_PERMISSAO')
+  }
+
+  const alvo = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId: membroId } },
+  })
+
+  if (solicitante.role === 'MODERADOR' && ['MODERADOR', 'DONO'].includes(alvo.role)) {
+    throw new Error('SEM_PERMISSAO')
+  }
+
+  return prisma.membroComunidade.delete({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId: membroId } },
+  })
+}
+
+export async function promoverMembro(
+  solicitanteId: string,
+  comunidadeId: string,
+  data: PromoverMembroBody
+) {
+  const solicitante = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId: solicitanteId } },
+  })
+
+  if (solicitante.role !== 'DONO') throw new Error('SEM_PERMISSAO')
+
+  return prisma.membroComunidade.update({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId: data.usuarioId } },
+    data: { role: data.role },
+  })
+}
+
+export async function deletarComunidade(usuarioId: string, comunidadeId: string) {
+  const membro = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+
+  if (membro.role !== 'DONO') throw new Error('SEM_PERMISSAO')
+
+  await prisma.$transaction([
+    prisma.membroComunidade.deleteMany({ where: { comunidadeId } }),
+    prisma.comunidade.update({
+      where: { id: comunidadeId },
+      data: { ativo: false },
+    }),
+    prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { comunidadesCriadas: { decrement: 1 } },
+    }),
+  ])
+}
+
+export async function rankingComunidade(comunidadeId: string) {
+  const membros = await prisma.membroComunidade.findMany({
+    where: { comunidadeId },
+    include: {
+      usuario: {
+        select: {
+          id: true,
+          nome: true,
+          avatarUrl: true,
+          palpites: { select: { pontos: true } },
+          palpitesEspeciais: { select: { pontos: true } },
+        },
+      },
+    },
+  })
+
+  return membros
+    .map(({ usuario, role }) => {
+      const pontosPalpites = usuario.palpites.reduce((acc, p) => acc + p.pontos, 0)
+      const pontosEspeciais = usuario.palpitesEspeciais.reduce((acc, p) => acc + p.pontos, 0)
+      return {
+        usuarioId: usuario.id,
+        nome: usuario.nome,
+        avatarUrl: usuario.avatarUrl,
+        role,
+        totalPontos: pontosPalpites + pontosEspeciais,
+        pontosPalpites,
+        pontosEspeciais,
+      }
+    })
+    .sort((a, b) => b.totalPontos - a.totalPontos)
+    .map((m, i) => ({ ...m, posicao: i + 1 }))
+}
+
+export async function buscarComunidades(query: string, usuarioId: string) {
+  return prisma.comunidade.findMany({
+    where: {
+      ativo: true,
+      OR: [
+        { nome:         { contains: query, mode: 'insensitive' } },
+        { codigoCovite: { equals:   query } },
+      ],
+    },
+    include: {
+      _count: { select: { membros: true } },
+      membros: {
+        where: { usuarioId },
+        select: { role: true },
+      },
+    },
+    take: 20,
+  })
+}
+
+export async function detalhesComunidade(comunidadeId: string, usuarioId: string) {
+  const comunidade = await prisma.comunidade.findUniqueOrThrow({
+    where: { id: comunidadeId, ativo: true },
+    include: {
+      membros: {
+        include: {
+          usuario: { select: { id: true, nome: true, avatarUrl: true } },
+        },
+        orderBy: { entradoEm: 'asc' },
+      },
+      _count: { select: { membros: true } },
+    },
+  })
+
+  const meuRole = comunidade.membros.find(m => m.usuarioId === usuarioId)?.role ?? null
+
+  if (comunidade.tipo === 'PRIVADA' && !meuRole) {
+    throw new Error('SEM_PERMISSAO')
+  }
+
+  return { ...comunidade, meuRole }
+}
+
+export async function solicitarEntrada(usuarioId: string, comunidadeId: string) {
+  const comunidade = await prisma.comunidade.findUniqueOrThrow({
+    where: { id: comunidadeId, ativo: true },
+  })
+
+  if (comunidade.tipo !== 'PRIVADA') {
+    throw new Error('COMUNIDADE_PUBLICA')
+  }
+
+  const jaEMembro = await prisma.membroComunidade.findUnique({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+  if (jaEMembro) throw new Error('JA_MEMBRO')
+
+  const solicitacaoExistente = await prisma.solicitacaoComunidade.findUnique({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+  if (solicitacaoExistente?.status === 'PENDENTE') throw new Error('SOLICITACAO_PENDENTE')
+
+  return prisma.solicitacaoComunidade.upsert({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+    update: { status: 'PENDENTE', atualizadoEm: new Date() },
+    create: { comunidadeId, usuarioId },
+  })
+}
+
+export async function listarSolicitacoes(solicitanteId: string, comunidadeId: string) {
+  const membro = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId: solicitanteId } },
+  })
+
+  if (!['DONO', 'MODERADOR'].includes(membro.role)) {
+    throw new Error('SEM_PERMISSAO')
+  }
+
+  return prisma.solicitacaoComunidade.findMany({
+    where: { comunidadeId, status: 'PENDENTE' },
+    include: {
+      usuario: { select: { id: true, nome: true, avatarUrl: true } },
+    },
+    orderBy: { criadoEm: 'asc' },
+  })
+}
+
+
+export async function responderSolicitacao(
+  solicitanteId: string,
+  comunidadeId: string,
+  solicitacaoId: string,
+  aceitar: boolean
+) {
+  const membro = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId: solicitanteId } },
+  })
+
+  if (!['DONO', 'MODERADOR'].includes(membro.role)) {
+    throw new Error('SEM_PERMISSAO')
+  }
+
+  const solicitacao = await prisma.solicitacaoComunidade.findUniqueOrThrow({
+    where: { id: solicitacaoId },
+  })
+
+  if (aceitar) {
+    await prisma.$transaction([
+      prisma.membroComunidade.create({
+        data: {
+          comunidadeId,
+          usuarioId: solicitacao.usuarioId,
+          role: 'MEMBRO',
+        },
+      }),
+      prisma.solicitacaoComunidade.update({
+        where: { id: solicitacaoId },
+        data: { status: 'ACEITA' },
+      }),
+    ])
+  } else {
+    await prisma.solicitacaoComunidade.update({
+      where: { id: solicitacaoId },
+      data: { status: 'REJEITADA' },
+    })
+  }
+
+  return { aceitar }
+}
+
+export async function alterarTipoComunidade(
+  usuarioId: string,
+  comunidadeId: string,
+  tipo: TipoComunidade
+) {
+  const membro = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+
+  if (membro.role !== 'DONO') throw new Error('SEM_PERMISSAO')
+
+  const codigoCovite = tipo === 'PRIVADA' ? randomBytes(6).toString('hex') : null
+
+  return prisma.comunidade.update({
+    where: { id: comunidadeId },
+    data: { tipo, codigoCovite },
+  })
+}
+
+export async function sairComunidade(usuarioId: string, comunidadeId: string) {
+  const membro = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+
+  if (membro.role === 'DONO') throw new Error('DONO_NAO_PODE_SAIR')
+
+  return prisma.membroComunidade.delete({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+}

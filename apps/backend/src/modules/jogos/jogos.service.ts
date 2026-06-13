@@ -47,15 +47,28 @@ export async function buscarJogos(filtros: JogosQueryParams = {}): Promise<JogoR
 
 export async function buscarJogosHoje(dataManaus?: string) {
 
-  const dataRef = dataManaus
-    ? new Date(dataManaus)
-    : new Date(new Date().getTime() - 4 * 60 * 60 * 1000)
+  let inicioDia: Date
+  let fimDia: Date
 
-  const inicioDia = new Date(dataRef)
-  inicioDia.setHours(0, 0, 0, 0)
+  if (dataManaus) {
+    const dataLocal = new Date(`${dataManaus}T00:00:00`)
+    
+    inicioDia = new Date(dataLocal)
+    inicioDia.setHours(0, 0, 0, 0)
 
-  const fimDia = new Date(dataRef)
-  fimDia.setHours(23, 59, 59, 999)
+    fimDia = new Date(dataLocal)
+    fimDia.setHours(23, 59, 59, 999)
+  } else {
+
+    
+    const agoraManaus = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Manaus" }))
+    
+    inicioDia = new Date(agoraManaus)
+    inicioDia.setHours(0, 0, 0, 0)
+
+    fimDia = new Date(agoraManaus)
+    fimDia.setHours(23, 59, 59, 999)
+  }
 
   return prisma.jogo.findMany({
     where: {
