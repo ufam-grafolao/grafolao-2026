@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, RouteHandlerMethod } from 'fastify'
 import {
   listarComunidadesController,
   criarComunidadeController,
@@ -7,6 +7,11 @@ import {
   promoverMembroController,
   deletarComunidadeController,
   rankingComunidadeController,
+  buscarComunidadesController,
+  detalhesComunidadeController,
+  solicitarEntradaController,
+  listarSolicitacoesController,
+  responderSolicitacaoController,
 } from './comunidade.controller.js'
 import {
   criarComunidadeResponseSchema,
@@ -59,4 +64,24 @@ export async function comunidadeRoutes(app: FastifyInstance) {
       preHandler: [app.authenticate],
       schema: { response: rankingResponseSchema },
     }, rankingComunidadeController)
+
+  app.get('/comunidades/buscar', {
+    preHandler: [app.authenticate],
+  }, buscarComunidadesController as RouteHandlerMethod)
+
+  app.get('/comunidades/:comunidadeId', {
+    preHandler: [app.authenticate],
+  }, detalhesComunidadeController as RouteHandlerMethod)
+
+  app.post('/comunidades/:comunidadeId/solicitar', {
+    preHandler: [app.authenticate],
+  }, solicitarEntradaController as RouteHandlerMethod)
+
+  app.get('/comunidades/:comunidadeId/solicitacoes', {
+    preHandler: [app.authenticate],
+  }, listarSolicitacoesController as RouteHandlerMethod)
+
+  app.patch('/comunidades/:comunidadeId/solicitacoes/:solicitacaoId', {
+    preHandler: [app.authenticate],
+  }, responderSolicitacaoController as RouteHandlerMethod)
 }

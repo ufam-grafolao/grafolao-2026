@@ -28,6 +28,7 @@ model Usuario {
   comunidadesPossuidas      Comunidade[]        @relation("donoComunidade")
   convitesComunidadeCriados ConviteComunidade[] @relation("criadorConvite")
   comunidades               MembroComunidade[]
+  solicitacoesComunidade    SolicitacaoComunidade[]
 
   // Palpites
   palpites                  Palpite[]
@@ -165,6 +166,7 @@ model Comunidade {
   atualizadoEm DateTime            @updatedAt
   convites     ConviteComunidade[]
   membros      MembroComunidade[]
+  solicitacoesComunidade SolicitacaoComunidade[]
   
   // Mapeamento virtual do dono
   dono         Usuario             @relation("donoComunidade", fields: [donoId], references: [id])
@@ -201,6 +203,21 @@ model ConviteComunidade {
   criadoPor    Usuario    @relation("criadorConvite", fields: [criadoPorId], references: [id])
 
   @@map("convites_comunidade")
+}
+
+model SolicitacaoComunidade {
+  id           String                  @id @default(uuid())
+  comunidadeId String
+  usuarioId    String
+  status       StatusSolicitacao       @default(PENDENTE)
+  criadoEm    DateTime                @default(now())
+  atualizadoEm DateTime               @updatedAt
+
+  comunidade   Comunidade              @relation(fields: [comunidadeId], references: [id])
+  usuario      Usuario                 @relation(fields: [usuarioId], references: [id])
+
+  @@unique([comunidadeId, usuarioId])
+  @@map("solicitacoes_comunidade")
 }
 
 // ─────────────────────────────────────────
@@ -338,4 +355,10 @@ enum RoleComunidade {
   DONO
   MODERADOR
   MEMBRO
+}
+
+enum StatusSolicitacao {
+  PENDENTE
+  ACEITA
+  REJEITADA
 }

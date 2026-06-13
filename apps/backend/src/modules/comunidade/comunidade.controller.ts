@@ -7,6 +7,11 @@ import {
   promoverMembro,
   deletarComunidade,
   rankingComunidade,
+  buscarComunidades,
+  detalhesComunidade,
+  solicitarEntrada,
+  listarSolicitacoes,
+  responderSolicitacao,
 } from './comunidades.service.js'
 import type {
   CriarComunidadeBody,
@@ -123,6 +128,79 @@ export async function rankingComunidadeController(
   try {
     const ranking = await rankingComunidade(request.params.comunidadeId)
     return reply.send(ranking)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function buscarComunidadesController(
+  request: FastifyRequest<{ Querystring: { q: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const comunidades = await buscarComunidades(request.query.q ?? '', usuarioId)
+    return reply.send(comunidades)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function detalhesComunidadeController(
+  request: FastifyRequest<{ Params: { comunidadeId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const comunidade = await detalhesComunidade(request.params.comunidadeId, usuarioId)
+    return reply.send(comunidade)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function solicitarEntradaController(
+  request: FastifyRequest<{ Params: { comunidadeId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const solicitacao = await solicitarEntrada(usuarioId, request.params.comunidadeId)
+    return reply.status(201).send(solicitacao)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function listarSolicitacoesController(
+  request: FastifyRequest<{ Params: { comunidadeId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const solicitacoes = await listarSolicitacoes(usuarioId, request.params.comunidadeId)
+    return reply.send(solicitacoes)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function responderSolicitacaoController(
+  request: FastifyRequest<{
+    Params: { comunidadeId: string; solicitacaoId: string }
+    Body: { aceitar: boolean }
+  }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const resultado = await responderSolicitacao(
+      usuarioId,
+      request.params.comunidadeId,
+      request.params.solicitacaoId,
+      request.body.aceitar
+    )
+    return reply.send(resultado)
   } catch (e) {
     return handleError(e, reply)
   }

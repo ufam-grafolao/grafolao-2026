@@ -177,3 +177,129 @@ export async function rankingComunidade(comunidadeId: string) {
     .sort((a, b) => b.totalPontos - a.totalPontos)
     .map((m, i) => ({ ...m, posicao: i + 1 }))
 }
+
+export async function buscarComunidades(query: string, usuarioId: string) {
+  return prisma.comunidade.findMany({
+    where: {
+      ativo: true,
+      OR: [
+        { nome:         { contains: query, mode: 'insensitive' } },
+        { codigoCovite: { equals:   query } },
+      ],
+    },
+    include: {
+      _count: { select: { membros: true } },
+      membros: {
+        where: { usuarioId },
+        select: { role: true },
+      },
+    },
+    take: 20,
+  })
+}
+
+export async function detalhesComunidade(comunidadeId: string, usuarioId: string) {
+  const comunidade = await prisma.comunidade.findUniqueOrThrow({
+    where: { id: comunidadeId, ativo: true },
+    include: {
+      membros: {
+        include: {
+          usuario: { select: { id: true, nome: true, avatarUrl: true } },
+        },
+        orderBy: { entradoEm: 'asc' },
+      },
+      _count: { select: { membros: true } },
+    },
+  })
+
+  const meuRole = comunidade.membros.find(m => m.usuarioId === usuarioId)?.role ?? null
+
+  return { ...comunidade, meuRole }
+}
+
+export async function solicitarEntrada(usuarioId: string, comunidadeId: string) {
+  const comunidade = await prisma.comunidade.findUniqueOrThrow({
+    where: { id: comunidadeId, ativo: true },
+  })
+
+  if (comunidade.tipo !== 'PRIVADA') {
+    throw new Error('COMUNIDADE_PUBLICA')
+  }
+
+  const jaEMembro = await prisma.membroComunidade.findUnique({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+  if (jaEMembro) throw new Error('JA_MEMBRO')
+
+  const solicitacaoExistente = await prisma.solicitacaoComunidade.findUnique({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+  if (solicitacaoExistente?.status === 'PENDENTE') throw new Error('SOLICITACAO_PENDENTE')
+
+  return prisma.solicitacaoComunidade.upsert({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+    update: { status: 'PENDENTE', atualizadoEm: new Date() },
+    create: { comunidadeId, usuarioId },
+  })
+}
+
+export async function listarSolicitacoes(solicitanteId: string, comunidadeId: string) {
+  const membro = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId: solicitanteId } },
+  })
+
+  if (!['DONO', 'MODERADOR'].includes(membro.role)) {
+    throw new Error('SEM_PERMISSAO')
+  }
+
+  return prisma.solicitacaoComunidade.findMany({
+    where: { comunidadeId, status: 'PENDENTE' },
+    include: {
+      usuario: { select: { id: true, nome: true, avatarUrl: true } },
+    },
+    orderBy: { criadoEm: 'asc' },
+  })
+}
+
+
+export async function responderSolicitacao(
+  solicitanteId: string,
+  comunidadeId: string,
+  solicitacaoId: string,
+  aceitar: boolean
+) {
+  const membro = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId: solicitanteId } },
+  })
+
+  if (!['DONO', 'MODERADOR'].includes(membro.role)) {
+    throw new Error('SEM_PERMISSAO')
+  }
+
+  const solicitacao = await prisma.solicitacaoComunidade.findUniqueOrThrow({
+    where: { id: solicitacaoId },
+  })
+
+  if (aceitar) {
+    await prisma.$transaction([
+      prisma.membroComunidade.create({
+        data: {
+          comunidadeId,
+          usuarioId: solicitacao.usuarioId,
+          role: 'MEMBRO',
+        },
+      }),
+      prisma.solicitacaoComunidade.update({
+        where: { id: solicitacaoId },
+        data: { status: 'ACEITA' },
+      }),
+    ])
+  } else {
+    await prisma.solicitacaoComunidade.update({
+      where: { id: solicitacaoId },
+      data: { status: 'REJEITADA' },
+    })
+  }
+
+  return { aceitar }
+}
