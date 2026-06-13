@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useJogosHoje } from '@/hooks/use-jogos-hoje'
 import { Skeleton } from '@/components/ui/skeleton'
 import JogoCard from '@/components/cards/jogo-card'
-import { useResumo } from '@/hooks/use-resumo'
+import { useResumo } from '@/hooks/use-auth-resumo'
 
 export function DashboardPage() {
   const { usuario } = useAuth()

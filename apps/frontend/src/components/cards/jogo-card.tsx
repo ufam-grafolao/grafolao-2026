@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { PalpiteExistente } from "@/types/palpites";
 import { getNomePt } from "@/lib/nomes-times";
 import { formatarDataJogo, formatarHoraJogo } from "@/lib/utils";
+import { useToast } from "@/lib/toast";
 
 
 
@@ -40,6 +41,9 @@ interface JogoCardProps {
 }
 
 export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesExistente }: JogoCardProps) {
+
+    const { toast } = useToast()
+
     // — navegação
     const navigate = useNavigate()
     const estaNaPaginaJogos = useLocation().pathname === '/jogos'
@@ -57,7 +61,7 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     const codigoVisitante = getBandeira(nomeOriginalVisitante)
 
     // — palpite
-    const { mutate: salvaPalpite, isPending, isError, error } = usePalpitar()
+    const { mutate: salvaPalpite, isPending } = usePalpitar()
     const palpiteExistente = palpitesExistente?.find(p => p.jogo.id === jogo.id)
     const edicoesRestantes = 2 - (palpiteExistente?.totalEdicoes ?? 0)
     const podeEditar = edicoesRestantes > 0
@@ -89,7 +93,12 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
         }
 
         if ((golsCasa === null || golsVisitante === null) || (golsCasa < 0 || golsVisitante < 0)) {
-            alert('Por favor, insira um número válido de gols para ambos os times.');
+            toast('warning' ,'Por favor, insira um número válido de gols para ambos os times.');
+            return;
+        }
+
+        if (golsCasa > 20 || golsVisitante > 20) {
+            toast('warning', 'Número de gols muito alto', 'Por favor, insira um número razoável de gols (0-20).');
             return;
         }
 
@@ -110,15 +119,8 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
         }
     }, [palpiteExistente?.id])
 
-    useEffect(() => {
-        if (isError) {
-            alert(error instanceof Error ? error.message : 'Erro ao salvar palpite');
-            setPalpiteConfirmado(false);
-        }
-    }, [isError, error])
-
     return (
-        <Card className="max-w-[400px] hover:border-primary/50 transition-colors">
+        <Card className="w-auto hover:border-primary/50 transition-colors">
             <CardContent className="pt-1 pb-2">
                 <div className="h-1/5 grid grid-cols-3 gap-2 mb-4">
                     <span className="text-xs text-muted-foreground">
@@ -127,7 +129,7 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                     <span className="text-center">
                         {formatarDataJogo(jogo.dataHora)}
                     </span>
-                    <span className="text-xs text-center text-muted-foreground">
+                    <span className="text-xs text-center text-muted-foreground line-clamp-2 leading-tight">
                         🏟️ {jogo.local}
                     </span>
                 </div>
@@ -143,26 +145,9 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                     {statusEfetivo === 'ENCERRADO' && jogo.resultado && (
                         <div className="w-1/2 flex flex-col items-center">
                             <span className="font-bold text-lg px-2 tabular-nums">
-                                {jogo.resultado.golsCasa} - {jogo.resultado.golsVisitante}
+                            {jogo.resultado.golsCasa} - {jogo.resultado.golsVisitante}
                             </span>
-                            <span className="text-muted-foreground mb-2">
-                                {statusEfetivo}
-                            </span>
-                            {/* <div className="grid grid-cols-3 w-full items-center gap-4">
-                                <div className="flex flex-col items-end gap-1">
-                                    {jogo.resultado.artilheirosCasa.map((jogador, idx) => (
-                                        <span key={`c-${idx}`} className="text-xs text-left text-muted-foreground">{jogador}</span>
-                                    ))}
-                                </div>
-
-                                <div className="px-2">⚽</div>
-
-                                <div className="flex flex-col items-start gap-1">
-                                    {jogo.resultado.artilheirosVisitante.map((jogador, idx) => (
-                                        <span key={`v-${idx}`} className="text-xs text-muted-foreground">{jogador}</span>
-                                    ))}
-                                </div>
-                            </div> */}
+                            <span className="text-xs text-muted-foreground mb-1">Encerrado</span>
                         </div>
                     )}
 
@@ -189,20 +174,45 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                     </div>
                 </div>
 
-                {statusEfetivo === 'ENCERRADO' && palpiteExistente && (
+                {statusEfetivo === 'ENCERRADO' && jogo.resultado && (
+                    jogo.resultado.artilheirosCasa.length > 0 || jogo.resultado.artilheirosVisitante.length > 0
+                    ) && (
+                    <div className="flex justify-between gap-2 px-1 mt-1 mb-2">
+                        <div className="flex flex-col items-start gap-0.5 w-[45%]">
+                        {jogo.resultado.artilheirosCasa.map((jogador, idx) => (
+                            <span key={idx} className="text-[11px] text-muted-foreground truncate w-full">
+                            ⚽ {jogador}
+                            </span>
+                        ))}
+                        </div>
+                        <div className="flex flex-col items-end gap-0.5 w-[45%]">
+                        {jogo.resultado.artilheirosVisitante.map((jogador, idx) => (
+                            <span key={idx} className="text-[11px] text-muted-foreground truncate w-full text-right">
+                            {jogador} ⚽
+                            </span>
+                        ))}
+                        </div>
+                    </div>
+                )}
+
+                {(statusEfetivo === 'ENCERRADO' || statusEfetivo === 'EM_ANDAMENTO') && palpiteExistente && (
                     <div className={`text-xs text-center pt-2 border-t border-border font-medium ${
-                        palpiteExistente.status === 'ACERTO_PLACAR'
-                        ? 'text-green-600 dark:text-green-400'
-                        : palpiteExistente.status === 'ACERTO_RESULTADO'
-                        ? 'text-blue-600 dark:text-blue-400'
+                        statusEfetivo === 'ENCERRADO'
+                        ? palpiteExistente.status === 'ACERTO_PLACAR'
+                            ? 'text-green-600 dark:text-green-400'
+                            : palpiteExistente.status === 'ACERTO_RESULTADO'
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : 'text-muted-foreground'
                         : 'text-muted-foreground'
                     }`}>
-                        {palpiteExistente.status === 'ACERTO_PLACAR' && '🎯 Placar exato! '}
-                        {palpiteExistente.status === 'ACERTO_RESULTADO' && '✅ Resultado certo! '}
-                        {palpiteExistente.status === 'ERRO' && '❌ '}
+                        {statusEfetivo === 'ENCERRADO' && palpiteExistente.status === 'ACERTO_PLACAR' && '🎯 Placar exato! '}
+                        {statusEfetivo === 'ENCERRADO' && palpiteExistente.status === 'ACERTO_RESULTADO' && '✅ Resultado certo! '}
+                        {statusEfetivo === 'ENCERRADO' && palpiteExistente.status === 'ERRO' && '❌ '}
+                        {statusEfetivo === 'EM_ANDAMENTO' && '⏳ '}
                         Seu palpite: {palpiteExistente.golsCasa} – {palpiteExistente.golsVisitante}
-                        {' · '}
-                        <span className="font-semibold">{palpiteExistente.pontos} pts</span>
+                        {statusEfetivo === 'ENCERRADO' && (
+                        <>{' · '}<span className="font-semibold">{palpiteExistente.pontos} pts</span></>
+                        )}
                     </div>
                 )}
 
@@ -224,7 +234,13 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                             disabled={palpiteConfirmado}
                             className="w-auto text-center"
                             value={golsCasa !== null ? golsCasa : ''}
-                            onChange={(e) => setGolsCasa(e.target.value === '' ? null : Number(e.target.value))}
+                            onChange={(e) => {
+                                const val = e.target.value
+                                if (val === '') { setGolsCasa(null); return }
+                                const n = parseInt(val, 10)
+                                if (isNaN(n)) return
+                                setGolsCasa(n)
+                            }}
                         />
 
                         {isPending && (
@@ -261,7 +277,13 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                             disabled={palpiteConfirmado}
                             className="w-auto text-center"
                             value={golsVisitante !== null ? golsVisitante : ''}
-                            onChange={(e) => setGolsVisitante(e.target.value === '' ? null : Number(e.target.value))}
+                            onChange={(e) => {
+                                const val = e.target.value
+                                if (val === '') { setGolsVisitante(null); return }
+                                const n = parseInt(val, 10)
+                                if (isNaN(n)) return 
+                                setGolsVisitante(n)
+                            }}
                         />
                     </div>
                 )}

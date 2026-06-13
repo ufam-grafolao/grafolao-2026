@@ -1,5 +1,5 @@
 import { useJogos } from '@/hooks/use-jogos'
-import { useMeusPalpites } from '@/hooks/use-meus-palpites'
+import { useMeusPalpites } from '@/hooks/use-palpites-meus'
 import JogoCard from '@/components/cards/jogo-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'

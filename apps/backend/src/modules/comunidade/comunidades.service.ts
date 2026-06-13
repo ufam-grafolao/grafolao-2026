@@ -4,6 +4,7 @@ import type {
   CriarComunidadeBody,
   EntrarComunidadeBody,
   PromoverMembroBody,
+  TipoComunidade,
 } from './comunidade.schema.js'
 
 const LIMITE_COMUNIDADES = 3
@@ -50,6 +51,12 @@ export async function listarComunidades(usuarioId: string) {
         { tipo: 'PUBLICA' },
         { membros: { some: { usuarioId } } },
       ],
+    },
+    include: {
+      membros: {
+        where: { usuarioId },
+        select: { role: true },
+      },
     },
     orderBy: { criadoEm: 'desc' },
   })
@@ -214,6 +221,10 @@ export async function detalhesComunidade(comunidadeId: string, usuarioId: string
 
   const meuRole = comunidade.membros.find(m => m.usuarioId === usuarioId)?.role ?? null
 
+  if (comunidade.tipo === 'PRIVADA' && !meuRole) {
+    throw new Error('SEM_PERMISSAO')
+  }
+
   return { ...comunidade, meuRole }
 }
 
@@ -302,4 +313,35 @@ export async function responderSolicitacao(
   }
 
   return { aceitar }
+}
+
+export async function alterarTipoComunidade(
+  usuarioId: string,
+  comunidadeId: string,
+  tipo: TipoComunidade
+) {
+  const membro = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+
+  if (membro.role !== 'DONO') throw new Error('SEM_PERMISSAO')
+
+  const codigoCovite = tipo === 'PRIVADA' ? randomBytes(6).toString('hex') : null
+
+  return prisma.comunidade.update({
+    where: { id: comunidadeId },
+    data: { tipo, codigoCovite },
+  })
+}
+
+export async function sairComunidade(usuarioId: string, comunidadeId: string) {
+  const membro = await prisma.membroComunidade.findUniqueOrThrow({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+
+  if (membro.role === 'DONO') throw new Error('DONO_NAO_PODE_SAIR')
+
+  return prisma.membroComunidade.delete({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
 }

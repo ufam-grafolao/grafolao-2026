@@ -12,8 +12,11 @@ import {
   solicitarEntrada,
   listarSolicitacoes,
   responderSolicitacao,
+  alterarTipoComunidade,
+  sairComunidade,
 } from './comunidades.service.js'
 import type {
+  AlterarTipoComunidadeBody,
   CriarComunidadeBody,
   EntrarComunidadeBody,
   PromoverMembroBody,
@@ -201,6 +204,32 @@ export async function responderSolicitacaoController(
       request.body.aceitar
     )
     return reply.send(resultado)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function alterarTipoComunidadeController(
+  request: FastifyRequest<{ Params: { comunidadeId: string }; Body: AlterarTipoComunidadeBody }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const comunidade = await alterarTipoComunidade(usuarioId, request.params.comunidadeId, request.body.tipo)
+    return reply.send(comunidade)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function sairComunidadeController(
+  request: FastifyRequest<{ Params: { comunidadeId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    await sairComunidade(usuarioId, request.params.comunidadeId)
+    return reply.status(204).send()
   } catch (e) {
     return handleError(e, reply)
   }

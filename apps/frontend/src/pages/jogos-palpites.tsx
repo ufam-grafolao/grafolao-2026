@@ -1,12 +1,9 @@
 import JogoCard from "@/components/cards/jogo-card"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useJogos } from "@/hooks/use-jogos"
 import { useJogosHoje } from "@/hooks/use-jogos-hoje"
-import { useMeusPalpites } from "@/hooks/use-meus-palpites"
+import { useMeusPalpites } from "@/hooks/use-palpites-meus"
 import { Jogo } from "@/types/jogo"
 import { Clock } from "lucide-react"
 
@@ -56,7 +53,14 @@ export default function JogosPalpitesPage() {
   const { data: meusPalpites, isLoading: loadingPalpites } = useMeusPalpites()
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full flex flex-col gap-6">
+
+      <div>
+        <h1 className="text-2xl font-semibold">Jogos e Palpites</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Acompanhe os jogos e faça seus palpites
+        </p>
+      </div>
       <Tabs defaultValue="todos" className="w-full h-full flex flex-col">
         <TabsList variant="line">
           <TabsTrigger value="todos">Todos</TabsTrigger>

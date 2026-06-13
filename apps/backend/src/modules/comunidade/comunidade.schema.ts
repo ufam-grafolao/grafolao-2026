@@ -58,6 +58,11 @@ export interface PromoverMembroBody {
   role: 'MODERADOR' | 'MEMBRO'
 }
 
+export interface AlterarTipoComunidadeBody {
+  tipo: TipoComunidade
+}
+
+
 // ─── JSON Schemas
 
 const usuarioResumoSchema = {
@@ -151,6 +156,16 @@ export const promoverMembroBodySchema = {
     properties: {
       usuarioId: { type: 'string', format: 'uuid' },
       role:      { type: 'string', enum: ['MODERADOR', 'MEMBRO'] },
+    },
+  },
+}
+
+export const alterarTipoBodySchema = {
+  body: {
+    type: 'object',
+    required: ['tipo'],
+    properties: {
+      tipo: { type: 'string', enum: ['PUBLICA', 'PRIVADA'] },
     },
   },
 }
