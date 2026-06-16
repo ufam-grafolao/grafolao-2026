@@ -149,7 +149,7 @@ export function AppLayout() {
 
           <SidebarFooter className="border-t p-2">
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-3 w-full rounded-lg p-2 hover:bg-sidebar-accent transition-colors">
+              <DropdownMenuTrigger className="cursor-pointer flex items-center gap-3 w-full rounded-lg p-2 hover:bg-sidebar-accent transition-colors">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={usuario?.avatarUrl ?? ''} alt={usuario?.nome} />
                     <AvatarFallback className="text-xs">
@@ -164,7 +164,7 @@ export function AppLayout() {
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56">
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-destructive">
+                <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
                   Sair
                 </DropdownMenuItem>
