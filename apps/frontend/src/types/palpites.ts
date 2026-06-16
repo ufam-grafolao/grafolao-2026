@@ -4,7 +4,7 @@ export interface PalpiteExistente {
   golsCasa: number
   golsVisitante: number
   pontos: number
-  status: 'PENDENTE' | 'ACERTO_PLACAR' | 'ACERTO_RESULTADO' | 'ERRO'
+  status: 'PENDENTE' | 'ACERTO_PLACAR' | 'ACERTO_VENCEDOR' | 'ERRO'
   totalEdicoes: number
   jogo: {
     id: string
@@ -16,4 +16,10 @@ export interface PalpiteExistente {
     timeCasaRef: string | null
     timeVisitanteRef: string | null
   }
+}
+
+export interface PalpitarInput {
+  jogoId: string
+  golsCasa: number
+  golsVisitante: number
 }

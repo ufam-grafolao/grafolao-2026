@@ -59,7 +59,6 @@ export default function ComunidadesPage() {
 
   const [modalCriar, setModalCriar] = useState(false)
   const [modalBuscar, setModalBuscar] = useState(false)
-  const [comunidadeSelecionada, setComunidadeSelecionada] = useState<string | null>(null)
 
   const minhas = comunidades?.filter(c => c.membros.length > 0) ?? []
   const descobrir = comunidades?.filter(c => c.membros.length === 0) ?? []
@@ -73,7 +72,7 @@ export default function ComunidadesPage() {
       {/* Cabeçalho */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold">Comunidades</h1>
+          <h1 className="text-2xl font-semibold">Grupos</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Dispute o ranking com seus amigos em grupos separados.
           </p>
@@ -98,7 +97,7 @@ export default function ComunidadesPage() {
         <div className="flex flex-col items-center gap-4 py-16 text-center">
           <span className="text-5xl">🏘️</span>
           <div>
-            <p className="font-semibold">Você ainda não faz parte de nenhuma comunidade</p>
+            <p className="font-semibold">Você ainda não faz parte de nenhuma grupo</p>
             <p className="text-sm text-muted-foreground mt-1">
               Crie a sua ou entre em uma existente para competir com seus amigos.
             </p>
@@ -106,11 +105,11 @@ export default function ComunidadesPage() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setModalBuscar(true)}>
               <Search className="h-4 w-4 mr-2" />
-              Buscar comunidade
+              Buscar grupo
             </Button>
             <Button onClick={() => setModalCriar(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Criar comunidade
+              Criar grupo
             </Button>
           </div>
         </div>
@@ -120,7 +119,7 @@ export default function ComunidadesPage() {
         <Tabs defaultValue="minhas">
           <TabsList variant="line">
             <TabsTrigger value="minhas">
-              Minhas comunidades
+              Meus grupos
               {!isLoading && <span className="ml-1.5 text-xs text-muted-foreground">({minhas.length})</span>}
             </TabsTrigger>
             <TabsTrigger value="descobrir">

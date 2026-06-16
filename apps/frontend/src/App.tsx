@@ -16,12 +16,14 @@ import { Loader2 } from 'lucide-react'
 function GlobalLoading() {
   const isFetching = useIsFetching()
   const isMutating = useIsMutating()
+  const isActive = isFetching > 0 || isMutating > 0
 
-  if (!isFetching && !isMutating) return null
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/60 backdrop-blur-sm">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
+    <div
+      className={`fixed top-0 left-0 z-[9999] h-0.5 bg-primary transition-all duration-300 ${
+        isActive ? 'w-full opacity-100' : 'w-0 opacity-0'
+      }`}
+    />
   )
 }
 

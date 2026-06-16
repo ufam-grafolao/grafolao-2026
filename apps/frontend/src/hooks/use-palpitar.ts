@@ -2,12 +2,7 @@ import { API_URL } from "@/lib/env";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./use-auth";
 import { useToast } from "@/lib/toast";
-
-interface PalpitarInput {
-  jogoId: string
-  golsCasa: number
-  golsVisitante: number
-}
+import { PalpitarInput } from "@/types/palpites";
 
 export default function usePalpitar() {
     const { token } = useAuth()

@@ -58,9 +58,9 @@ export default function BuscarComunidadeModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={v => !v && handleClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="bg-sidebar max-w-md">
         <DialogHeader>
-          <DialogTitle>Entrar em uma comunidade</DialogTitle>
+          <DialogTitle>Entrar em um grupo</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 mt-2">
@@ -83,7 +83,7 @@ export default function BuscarComunidadeModal({ open, onClose }: Props) {
 
           {!isFetching && resultados && resultados.length === 0 && busca.trim().length >= 2 && (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Nenhuma comunidade encontrada.
+              Nenhum grupo encontrado.
             </p>
           )}
 
@@ -136,7 +136,7 @@ export default function BuscarComunidadeModal({ open, onClose }: Props) {
 
               {alvo.tipo === 'PRIVADA' && (
                 <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
-                  Esta é uma comunidade privada. Sua solicitação será enviada para aprovação dos moderadores.
+                  Este é um grupo privado. Sua solicitação será enviada para aprovação dos moderadores.
                 </p>
               )}
 

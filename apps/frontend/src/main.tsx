@@ -13,7 +13,8 @@ const queryClient = new QueryClient({
       retry: 2,
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
       staleTime: 3 * 60 * 1000,
-      throwOnError: true
+      throwOnError: true,
+      refetchOnWindowFocus: false,
     }
   }
 })
