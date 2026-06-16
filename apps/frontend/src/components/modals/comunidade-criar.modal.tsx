@@ -15,7 +15,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { useCriarComunidade } from '@/hooks/use-comunidades-mutations'
 import type { TipoComunidade } from '@/types/comunidade'
@@ -66,9 +65,9 @@ export default function CriarComunidadeModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={v => !v && handleClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="bg-sidebar max-w-md">
         <DialogHeader>
-          <DialogTitle>Criar comunidade</DialogTitle>
+          <DialogTitle>Criar grupo</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 mt-2">
@@ -76,7 +75,7 @@ export default function CriarComunidadeModal({ open, onClose }: Props) {
             <Label htmlFor="nome">Nome</Label>
             <Input
               id="nome"
-              placeholder="Nome da comunidade"
+              placeholder="Nome do grupo"
               value={nome}
               onChange={e => setNome(e.target.value)}
               maxLength={50}
@@ -88,7 +87,7 @@ export default function CriarComunidadeModal({ open, onClose }: Props) {
             <Label htmlFor="descricao">Descrição <span className="text-muted-foreground">(opcional)</span></Label>
             <Textarea
               id="descricao"
-              placeholder="Fale um pouco sobre a comunidade..."
+              placeholder="Fale um pouco sobre o grupo..."
               value={descricao}
               onChange={e => setDescricao(e.target.value)}
               maxLength={200}

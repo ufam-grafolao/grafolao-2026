@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 
 export function useAuthMe(token: string | null) {
     return useQuery<Usuario>({
-        queryKey: ['auth', 'me', token],
+        queryKey: ['auth', 'me'],
         queryFn: async () => {
             if (!token) throw new Error('Token ausente')
 
