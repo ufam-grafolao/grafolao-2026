@@ -45,9 +45,13 @@ export async function iniciarScheduler() {
 
   let agendados = 0
 
+  // O banco armazena dataHora como UTC+0, mas os valores representam horário de Manaus (UTC-4).
+  // Somamos 4h para obter o instante UTC real do kickoff — mesmo ajuste feito em palpites.service.ts.
+  const MANAUS_OFFSET_MS = 4 * 60 * 60 * 1000
+
   for (const jogo of jogos) {
     const nome = nomeJogo(jogo.timeCasa, jogo.timeVisitante, jogo.timeCasaRef, jogo.timeVisitanteRef)
-    const kickoff = jogo.dataHora.getTime()
+    const kickoff = jogo.dataHora.getTime() + MANAUS_OFFSET_MS
 
     const ms60 = kickoff - 60 * 60 * 1000 - agora.getTime()
     const ms30 = kickoff - 30 * 60 * 1000 - agora.getTime()
