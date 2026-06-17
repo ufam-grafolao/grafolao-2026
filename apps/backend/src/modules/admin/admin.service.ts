@@ -1,5 +1,7 @@
 import prisma from '../../db/prisma.js'
 import { calcularPontuacaoJogo } from '../palpites/palpites.service.js'
+import { enviarParaTodos } from '../push/push.service.js'
+import { getNomePt } from '../../shared/utils/nomes-times.js'
 import type { InserirResultadoBody, AtualizarStatusBody } from './admin.schema.js'
 
 // ─── Insere ou atualiza resultado de um jogo ──────────────────────────────────
@@ -59,6 +61,24 @@ export async function inserirResultado(
   // Calcula pontuação de todos os palpites desse jogo
   await calcularPontuacaoJogo(jogoId)
 
+  // Notifica usuários sobre o resultado
+  const jogoComTimes = await prisma.jogo.findUnique({
+    where: { id: jogoId },
+    include: {
+      timeCasa:      { select: { nome: true } },
+      timeVisitante: { select: { nome: true } },
+    },
+  })
+  if (jogoComTimes) {
+    const casa      = getNomePt(jogoComTimes.timeCasa?.nome      ?? jogoComTimes.timeCasaRef      ?? '?')
+    const visitante = getNomePt(jogoComTimes.timeVisitante?.nome ?? jogoComTimes.timeVisitanteRef ?? '?')
+    enviarParaTodos({
+      title: `🏁 Resultado: ${casa} ${body.golsCasa} x ${body.golsVisitante} ${visitante}`,
+      body:  'O resultado foi publicado. Confira sua pontuação!',
+      url:   '/meus-palpites',
+    }).catch(() => {})
+  }
+
   return { resultado }
 }
 
@@ -84,6 +104,41 @@ export async function atualizarStatusJogo(
   })
 
   return { jogo: atualizado }
+}
+
+// ─── Estatísticas gerais (admin) ──────────────────────────────────────────────
+
+export async function buscarEstatisticas() {
+  const [totalUsuarios, totalPalpites, totalEspeciais, porUsuario] = await Promise.all([
+    prisma.usuario.count({ where: { ativo: true } }),
+    prisma.palpite.count(),
+    prisma.palpiteEspecial.count(),
+    prisma.usuario.findMany({
+      where: { ativo: true },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        avatarUrl: true,
+        _count: { select: { palpites: true, palpitesEspeciais: true } },
+      },
+      orderBy: { nome: 'asc' },
+    }),
+  ])
+
+  const palpitesPorUsuario = porUsuario
+    .map(u => ({
+      usuarioId:  u.id,
+      nome:       u.nome,
+      email:      u.email,
+      avatarUrl:  u.avatarUrl,
+      palpites:   u._count.palpites,
+      especiais:  u._count.palpitesEspeciais,
+      total:      u._count.palpites + u._count.palpitesEspeciais,
+    }))
+    .sort((a, b) => b.total - a.total)
+
+  return { totalUsuarios, totalPalpites, totalEspeciais, palpitesPorUsuario }
 }
 
 // ─── Lista jogos sem resultado (pendentes) ────────────────────────────────────

@@ -34,6 +34,9 @@ model Usuario {
   palpites                  Palpite[]
   palpitesEspeciais         PalpiteEspecial[]
 
+  // Notificações push
+  pushSubscriptions         PushSubscription[]
+
   // Módulo Proposta 2 — Grafo de Confrontos
   confrontosComoPerdedor Confronto[]         @relation("perdedor")
   confrontosComoVencedor Confronto[]         @relation("vencedor")
@@ -304,6 +307,22 @@ model CliqueSnapshot {
   calculadoEm DateTime @default(now())
 
   @@map("clique_snapshots")
+}
+
+// ─────────────────────────────────────────
+// MÓDULO PUSH NOTIFICATIONS
+// ─────────────────────────────────────────
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  usuarioId String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  criadoEm  DateTime @default(now())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@map("push_subscriptions")
 }
 
 // ─────────────────────────────────────────

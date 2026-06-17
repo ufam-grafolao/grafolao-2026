@@ -14,6 +14,8 @@ import {
   responderSolicitacaoController,
   alterarTipoComunidadeController,
   sairComunidadeController,
+  atualizarComunidadeController,
+  palpitesComunidadeController,
 } from './comunidade.controller.js'
 import {
   criarComunidadeResponseSchema,
@@ -23,8 +25,9 @@ import {
   criarComunidadeBodySchema,
   promoverMembroBodySchema,
   alterarTipoBodySchema,
+  atualizarComunidadeBodySchema,
 } from './comunidade.schema.js'
-import type { AlterarTipoComunidadeBody, CriarComunidadeBody, EntrarComunidadeBody, PromoverMembroBody } from './comunidade.schema.js'
+import type { AlterarTipoComunidadeBody, AtualizarComunidadeBody, CriarComunidadeBody, EntrarComunidadeBody, PromoverMembroBody } from './comunidade.schema.js'
 
 export async function comunidadeRoutes(app: FastifyInstance) {
   app.get('/comunidades', {
@@ -96,4 +99,14 @@ export async function comunidadeRoutes(app: FastifyInstance) {
   app.delete('/comunidades/:comunidadeId/sair', {
     preHandler: [app.authenticate],
   }, sairComunidadeController as RouteHandlerMethod)
+
+  app.get('/comunidades/:comunidadeId/palpites', {
+    preHandler: [app.authenticate],
+  }, palpitesComunidadeController as RouteHandlerMethod)
+
+  app.patch<{ Params: { comunidadeId: string }; Body: AtualizarComunidadeBody }>(
+    '/comunidades/:comunidadeId', {
+      preHandler: [app.authenticate],
+      schema: atualizarComunidadeBodySchema,
+    }, atualizarComunidadeController as RouteHandlerMethod)
 }

@@ -131,6 +131,26 @@ export async function promoverMembro(
   })
 }
 
+export async function atualizarComunidade(
+  usuarioId: string,
+  comunidadeId: string,
+  data: { nome?: string; descricao?: string }
+) {
+  const membro = await prisma.membroComunidade.findUnique({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+
+  if (!membro || membro.role !== 'DONO') throw new Error('SEM_PERMISSAO')
+
+  return prisma.comunidade.update({
+    where: { id: comunidadeId },
+    data: {
+      ...(data.nome      !== undefined && { nome: data.nome }),
+      ...(data.descricao !== undefined && { descricao: data.descricao }),
+    },
+  })
+}
+
 export async function deletarComunidade(usuarioId: string, comunidadeId: string) {
   const membro = await prisma.membroComunidade.findUniqueOrThrow({
     where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
@@ -139,11 +159,10 @@ export async function deletarComunidade(usuarioId: string, comunidadeId: string)
   if (membro.role !== 'DONO') throw new Error('SEM_PERMISSAO')
 
   await prisma.$transaction([
+    prisma.solicitacaoComunidade.deleteMany({ where: { comunidadeId } }),
+    prisma.conviteComunidade.deleteMany({ where: { comunidadeId } }),
     prisma.membroComunidade.deleteMany({ where: { comunidadeId } }),
-    prisma.comunidade.update({
-      where: { id: comunidadeId },
-      data: { ativo: false },
-    }),
+    prisma.comunidade.delete({ where: { id: comunidadeId } }),
     prisma.usuario.update({
       where: { id: usuarioId },
       data: { comunidadesCriadas: { decrement: 1 } },
@@ -344,4 +363,75 @@ export async function sairComunidade(usuarioId: string, comunidadeId: string) {
   return prisma.membroComunidade.delete({
     where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
   })
+}
+
+export async function palpitesComunidade(comunidadeId: string, usuarioId: string) {
+  const membro = await prisma.membroComunidade.findUnique({
+    where: { comunidadeId_usuarioId: { comunidadeId, usuarioId } },
+  })
+  if (!membro) throw new Error('SEM_PERMISSAO')
+
+  const membros = await prisma.membroComunidade.findMany({
+    where: { comunidadeId },
+    select: {
+      usuarioId: true,
+      usuario: { select: { id: true, nome: true, avatarUrl: true } },
+    },
+    orderBy: { entradoEm: 'asc' },
+  })
+
+  const memberIds = membros.map(m => m.usuarioId)
+
+  const jogos = await prisma.jogo.findMany({
+    where: {
+      status: 'ENCERRADO',
+      palpites: { some: { usuarioId: { in: memberIds } } },
+    },
+    select: {
+      id: true,
+      dataHora: true,
+      rodada: true,
+      grupo: true,
+      timeCasaRef: true,
+      timeVisitanteRef: true,
+      timeCasa:      { select: { nome: true } },
+      timeVisitante: { select: { nome: true } },
+      resultado:     { select: { golsCasa: true, golsVisitante: true } },
+      palpites: {
+        where: { usuarioId: { in: memberIds } },
+        select: {
+          usuarioId: true,
+          golsCasa: true,
+          golsVisitante: true,
+          pontos: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: { dataHora: 'desc' },
+  })
+
+  return jogos.map(jogo => ({
+    jogoId:          jogo.id,
+    dataHora:        jogo.dataHora,
+    rodada:          jogo.rodada,
+    grupo:           jogo.grupo,
+    timeCasaRef:     jogo.timeCasaRef,
+    timeVisitanteRef: jogo.timeVisitanteRef,
+    timeCasa:        jogo.timeCasa,
+    timeVisitante:   jogo.timeVisitante,
+    resultado:       jogo.resultado,
+    palpites: membros.map(m => {
+      const p = jogo.palpites.find(x => x.usuarioId === m.usuarioId)
+      return {
+        usuarioId:    m.usuarioId,
+        nome:         m.usuario.nome,
+        avatarUrl:    m.usuario.avatarUrl,
+        golsCasa:     p?.golsCasa     ?? null,
+        golsVisitante: p?.golsVisitante ?? null,
+        pontos:       p?.pontos       ?? null,
+        status:       p?.status       ?? null,
+      }
+    }),
+  }))
 }
