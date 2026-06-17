@@ -27,11 +27,15 @@ function agendarTimeout(ms: number, fn: () => void) {
 
 export async function iniciarScheduler() {
   const agora = new Date()
+  const manaus_offset = 4 * 60 * 60 * 1000
+
+  // Busca jogos cujo kickoff real (stored + 4h) ainda não passou
+  const agoraAjustada = new Date(agora.getTime() - manaus_offset)
 
   const jogos = await prisma.jogo.findMany({
     where: {
       status: 'AGENDADO',
-      dataHora: { gt: agora },
+      dataHora: { gt: agoraAjustada },
     },
     select: {
       id: true,
@@ -43,18 +47,35 @@ export async function iniciarScheduler() {
     },
   })
 
-  let agendados = 0
+  // Debug: próximos 4 jogos com horários de kickoff e notificações
+  const proximos4 = [...jogos]
+    .sort((a, b) => a.dataHora.getTime() - b.dataHora.getTime())
+    .slice(0, 4)
+  for (const j of proximos4) {
+    const n    = nomeJogo(j.timeCasa, j.timeVisitante, j.timeCasaRef, j.timeVisitanteRef)
+    const kick = new Date(j.dataHora.getTime() + manaus_offset)
+    const n60  = new Date(kick.getTime() - 60 * 60 * 1000)
+    const n30  = new Date(kick.getTime() - 30 * 60 * 1000)
+    const n15  = new Date(kick.getTime() - 15 * 60 * 1000)
+    console.log(
+      `🔍 ${n}\n` +
+      `   DB stored : ${j.dataHora.toISOString()}\n` +
+      `   kickoff   : ${kick.toISOString()}\n` +
+      `   notif -1h : ${n60.toISOString()}\n` +
+      `   notif -30m: ${n30.toISOString()}\n` +
+      `   notif -15m: ${n15.toISOString()}`
+    )
+  }
 
-  // O banco armazena dataHora como UTC+0, mas os valores representam horário de Manaus (UTC-4).
-  // Somamos 4h para obter o instante UTC real do kickoff — mesmo ajuste feito em palpites.service.ts.
-  const MANAUS_OFFSET_MS = 4 * 60 * 60 * 1000
+  let agendados = 0
 
   for (const jogo of jogos) {
     const nome = nomeJogo(jogo.timeCasa, jogo.timeVisitante, jogo.timeCasaRef, jogo.timeVisitanteRef)
-    const kickoff = jogo.dataHora.getTime() + MANAUS_OFFSET_MS
+    const kickoff = jogo.dataHora.getTime() + manaus_offset
 
     const ms60 = kickoff - 60 * 60 * 1000 - agora.getTime()
     const ms30 = kickoff - 30 * 60 * 1000 - agora.getTime()
+    const ms15 = kickoff - 15 * 60 * 1000 - agora.getTime()
 
     if (ms60 > 0) {
       agendarTimeout(ms60, () =>
@@ -72,6 +93,17 @@ export async function iniciarScheduler() {
         enviarParaTodos({
           title: `⏰ Últimos 30 minutos! ${nome}`,
           body:  'Corra para palpitar antes de fechar!',
+          url:   '/jogos',
+        }).catch(() => {})
+      )
+      agendados++
+    }
+
+    if (ms15 > 0) {
+      agendarTimeout(ms15, () =>
+        enviarParaTodos({
+          title: `🚨 ${nome} começa em 15 minutos!`,
+          body:  'Último aviso — feche seu palpite agora!',
           url:   '/jogos',
         }).catch(() => {})
       )
