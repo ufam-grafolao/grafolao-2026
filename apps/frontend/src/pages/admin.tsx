@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getBandeira } from '@/lib/bandeiras'
 import { useJogosPendentes } from '@/hooks/use-jogos-pendentes'
 import { useInserirResultado } from '@/hooks/use-resultado'
-import { Loader2, Plus, X } from 'lucide-react'
+import { useAdminStats } from '@/hooks/use-admin-stats'
+import { Loader2, Plus, X, Users, ClipboardList, Star, Search } from 'lucide-react'
 import { JogoPendente } from '@/types/jogo'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useJogosEncerrados } from '@/hooks/use-jogos-encerrados'
@@ -280,6 +282,131 @@ function JogoPendenteCard({ jogo }: JogoPendenteCardProps) {
   )
 }
 
+// ─── Aba de estatísticas ──────────────────────────────────────────────────────
+
+function getIniciais(nome: string) {
+  return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+}
+
+function TabEstatisticas() {
+  const { data, isLoading } = useAdminStats()
+  const [busca, setBusca] = useState('')
+
+  const usuariosFiltrados = (data?.palpitesPorUsuario ?? []).filter(u =>
+    u.nome.toLowerCase().includes(busca.toLowerCase()) ||
+    u.email.toLowerCase().includes(busca.toLowerCase())
+  )
+
+  return (
+    <div className="flex flex-col gap-6 mt-4">
+      {/* Cards de resumo */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Users className="h-4 w-4" /> Usuários ativos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading
+              ? <Skeleton className="h-9 w-16" />
+              : <p className="text-3xl font-semibold">{data?.totalUsuarios ?? 0}</p>
+            }
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" /> Palpites feitos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading
+              ? <Skeleton className="h-9 w-16" />
+              : <p className="text-3xl font-semibold">{data?.totalPalpites ?? 0}</p>
+            }
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Star className="h-4 w-4" /> Palpites especiais
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading
+              ? <Skeleton className="h-9 w-16" />
+              : <p className="text-3xl font-semibold">{data?.totalEspeciais ?? 0}</p>
+            }
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabela por usuário */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-sm font-semibold">Palpites por usuário</h2>
+          <div className="relative w-56">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar usuário..."
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              className="h-8 pl-8 text-sm"
+            />
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 rounded-lg" />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <div className="divide-y divide-border">
+              {usuariosFiltrados.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Nenhum usuário encontrado.
+                </p>
+              ) : (
+                usuariosFiltrados.map((u, idx) => (
+                  <div key={u.usuarioId} className="flex items-center gap-3 px-4 py-2.5">
+                    <span className="w-6 text-xs text-muted-foreground text-right shrink-0">
+                      {idx + 1}
+                    </span>
+                    <Avatar className="h-7 w-7 shrink-0">
+                      <AvatarImage src={u.avatarUrl ?? ''} alt={u.nome} />
+                      <AvatarFallback className="text-[10px]">{getIniciais(u.nome)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{u.nome}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 text-xs text-right">
+                      <div className="hidden sm:block text-muted-foreground">
+                        <span>{u.palpites} normais</span>
+                        <span className="mx-1">·</span>
+                        <span>{u.especiais} especiais</span>
+                      </div>
+                      <Badge variant="secondary" className="min-w-12 justify-center">
+                        {u.total} total
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -296,6 +423,7 @@ export default function AdminPage() {
           )}
         </TabsTrigger>
         <TabsTrigger value="encerrados">Encerrados</TabsTrigger>
+        <TabsTrigger value="stats">Estatísticas</TabsTrigger>
       </TabsList>
 
       <TabsContent className="mt-4" value="pendentes">
@@ -340,6 +468,10 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         )}
+      </TabsContent>
+
+      <TabsContent value="stats">
+        <TabEstatisticas />
       </TabsContent>
     </Tabs>
   )

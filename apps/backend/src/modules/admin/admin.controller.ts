@@ -3,6 +3,7 @@ import {
   inserirResultado,
   atualizarStatusJogo,
   buscarJogosPendentes,
+  buscarEstatisticas,
 } from './admin.service.js'
 import type { InserirResultadoBody, AtualizarStatusBody } from './admin.schema.js'
 import type { JwtPayload } from '../auth/auth.schema.js'
@@ -59,4 +60,14 @@ export async function jogosPendentesController(
 ) {
   const jogos = await buscarJogosPendentes()
   return reply.send(jogos)
+}
+
+// ─── GET /admin/stats ─────────────────────────────────────────────────────────
+
+export async function estatisticasController(
+  _request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const stats = await buscarEstatisticas()
+  return reply.send(stats)
 }

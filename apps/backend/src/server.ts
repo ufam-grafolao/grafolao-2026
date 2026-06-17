@@ -10,6 +10,9 @@ import { jogosRoutes } from './modules/jogos/jogos.routes.js'
 import { palpitesRoutes } from './modules/palpites/palpites.routes.js'
 import { adminRoutes } from './modules/admin/admin.routes.js'
 import { comunidadeRoutes } from './modules/comunidade/comunidade.routes.js'
+import { rankingRoutes } from './modules/ranking/ranking.routes.js'
+import { pushRoutes } from './modules/push/push.routes.js'
+import { iniciarScheduler } from './scheduler.js'
 
 const app = Fastify({
   logger: {
@@ -73,6 +76,8 @@ await app.register(jogosRoutes)
 await app.register(palpitesRoutes)
 await app.register(adminRoutes)
 await app.register(comunidadeRoutes)
+await app.register(rankingRoutes)
+await app.register(pushRoutes)
 
 // Health check
 app.get('/health', async () => {
@@ -87,6 +92,7 @@ const HOST = process.env.HOST ?? '0.0.0.0'
 try {
   await app.listen({ port: PORT, host: HOST })
   console.log(`🚀 Backend rodando em http://localhost:${PORT}`)
+  iniciarScheduler().catch(err => app.log.error(err, 'Falha ao iniciar scheduler'))
 } catch (err) {
   app.log.error(err)
   process.exit(1)

@@ -3,6 +3,7 @@ import {
   inserirResultadoController,
   atualizarStatusController,
   jogosPendentesController,
+  estatisticasController,
 } from './admin.controller.js'
 import {
   inserirResultadoBodySchema,
@@ -27,4 +28,9 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get('/admin/jogos/pendentes', {
     preHandler: [app.authenticate, apenasAdmin],
   }, jogosPendentesController as RouteHandlerMethod)
+
+  // Estatísticas gerais
+  app.get('/admin/stats', {
+    preHandler: [app.authenticate, apenasAdmin],
+  }, estatisticasController as RouteHandlerMethod)
 }

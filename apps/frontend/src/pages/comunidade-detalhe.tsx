@@ -1,15 +1,27 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
-import { ArrowLeft, Copy, Trash2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Copy, Trash2, Loader2, Pencil } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { useComunidadeDetalhes } from '@/hooks/use-comunidades-detalhes'
 import { useSolicitacoes } from '@/hooks/use-comunidades-solicitacoes'
-import { useAlterarTipoComunidade, useDeletarComunidade, useEntrarComunidade } from '@/hooks/use-comunidades-mutations'
+import { useAlterarTipoComunidade, useAtualizarComunidade, useDeletarComunidade, useEntrarComunidade } from '@/hooks/use-comunidades-mutations'
 import RankingComunidade from '@/components/content/comunidade-ranking'
 import MembrosComunidade from '@/components/content/comunidade-membros'
 import SolicitacoesComunidade from '@/components/content/comunidade-solicitacoes'
+import ComunidadePalpites from '@/components/content/comunidade-palpites'
 import { useToast } from '@/lib/toast'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -26,6 +38,11 @@ export default function ComunidadeDetalhePage() {
   const { mutate: deletar, isPending: deletando } = useDeletarComunidade()
   const { mutate: alterarTipo, isPending: alterando } = useAlterarTipoComunidade(comunidade?.id ?? '')
   const { mutate: entrar, isPending: entrando } = useEntrarComunidade()
+  const { mutate: atualizar, isPending: atualizando } = useAtualizarComunidade(comunidade?.id ?? '')
+
+  const [editAberto, setEditAberto] = useState(false)
+  const [editNome, setEditNome] = useState('')
+  const [editDescricao, setEditDescricao] = useState('')
 
   const podeDeletar = comunidade?.meuRole === 'DONO'
   const podeAlterar = comunidade?.meuRole === 'DONO'
@@ -42,6 +59,20 @@ export default function ComunidadeDetalhePage() {
       navigator.clipboard.writeText(comunidade.codigoCovite)
       toast('success', 'Código copiado!')
     }
+  }
+
+  function handleEditar() {
+    if (!comunidade) return
+    setEditNome(comunidade.nome)
+    setEditDescricao(comunidade.descricao ?? '')
+    setEditAberto(true)
+  }
+
+  function handleSalvarEdicao() {
+    atualizar(
+      { nome: editNome.trim(), descricao: editDescricao.trim() },
+      { onSuccess: () => setEditAberto(false) }
+    )
   }
 
   function handleDeletar() {
@@ -128,7 +159,11 @@ export default function ComunidadeDetalhePage() {
             )}
 
             {podeDeletar && (
-              <div className="border-t border-border pt-4 mt-auto">
+              <div className="border-t border-border pt-4 mt-auto flex flex-col gap-2">
+                <Button variant="outline" size="sm" className="w-full" onClick={handleEditar}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar nome / descrição
+                </Button>
                 <Button variant="destructive" size="sm" className="w-full" disabled={deletando} onClick={handleDeletar}>
                   {deletando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -136,6 +171,50 @@ export default function ComunidadeDetalhePage() {
                 </Button>
               </div>
             )}
+
+            <Dialog open={editAberto} onOpenChange={setEditAberto}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Editar comunidade</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-4 py-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-nome">Nome</Label>
+                    <Input
+                      id="edit-nome"
+                      value={editNome}
+                      onChange={e => setEditNome(e.target.value)}
+                      maxLength={50}
+                      placeholder="Nome da comunidade"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-descricao">Descrição <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                    <Textarea
+                      id="edit-descricao"
+                      value={editDescricao}
+                      onChange={e => setEditDescricao(e.target.value)}
+                      maxLength={200}
+                      placeholder="Descreva o grupo..."
+                      className="resize-none"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setEditAberto(false)} disabled={atualizando}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleSalvarEdicao}
+                    disabled={atualizando || editNome.trim().length < 3}
+                  >
+                    {atualizando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Salvar
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Coluna direita — tabs */}
@@ -143,6 +222,7 @@ export default function ComunidadeDetalhePage() {
             <Tabs defaultValue="ranking" className="w-full">
               <TabsList variant="line">
                 <TabsTrigger value="ranking">Ranking</TabsTrigger>
+                <TabsTrigger value="palpites">Palpites</TabsTrigger>
                 <TabsTrigger value="membros">Membros</TabsTrigger>
                 {podeVerSolicitacoes && (
                   <TabsTrigger value="solicitacoes">
@@ -155,6 +235,10 @@ export default function ComunidadeDetalhePage() {
                   </TabsTrigger>
                 )}
               </TabsList>
+
+              <TabsContent value="palpites">
+                <ComunidadePalpites comunidadeId={comunidade.id} />
+              </TabsContent>
 
               <TabsContent value="ranking" className="mt-4">
                 <RankingComunidade comunidadeId={comunidade.id} />

@@ -1,7 +1,28 @@
-import { Crown, Shield, Medal } from 'lucide-react'
+import { Crown, Shield } from 'lucide-react'
+import { useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRankingComunidade } from '@/hooks/use-comunidades-ranking'
 import type { RankingMembro, RoleComunidade } from '@/types/comunidade'
+
+function AvatarUsuario({ nome, avatarUrl }: { nome: string; avatarUrl: string | null }) {
+  const [erro, setErro] = useState(false)
+
+  if (avatarUrl && !erro) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={nome}
+        className="h-7 w-7 rounded-full object-cover shrink-0"
+        onError={() => setErro(true)}
+      />
+    )
+  }
+  return (
+    <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
+      {nome.charAt(0).toUpperCase()}
+    </div>
+  )
+}
 
 const roleIcon: Record<RoleComunidade, React.ReactNode> = {
   DONO:      <Crown className="h-3 w-3 text-yellow-500" />,
@@ -22,13 +43,7 @@ function RankingRow({ membro }: { membro: RankingMembro }) {
         {posicaoIcon[membro.posicao] ?? membro.posicao}
       </span>
 
-      {membro.avatarUrl ? (
-        <img src={membro.avatarUrl} alt={membro.nome} className="h-7 w-7 rounded-full object-cover shrink-0" />
-      ) : (
-        <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
-          {membro.nome.charAt(0).toUpperCase()}
-        </div>
-      )}
+      <AvatarUsuario nome={membro.nome} avatarUrl={membro.avatarUrl} />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">

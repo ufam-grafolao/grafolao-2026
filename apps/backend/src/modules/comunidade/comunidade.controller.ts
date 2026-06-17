@@ -14,9 +14,12 @@ import {
   responderSolicitacao,
   alterarTipoComunidade,
   sairComunidade,
+  atualizarComunidade,
+  palpitesComunidade,
 } from './comunidades.service.js'
 import type {
   AlterarTipoComunidadeBody,
+  AtualizarComunidadeBody,
   CriarComunidadeBody,
   EntrarComunidadeBody,
   PromoverMembroBody,
@@ -216,6 +219,32 @@ export async function alterarTipoComunidadeController(
   try {
     const { id: usuarioId } = request.user as AuthJwtPayload
     const comunidade = await alterarTipoComunidade(usuarioId, request.params.comunidadeId, request.body.tipo)
+    return reply.send(comunidade)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function palpitesComunidadeController(
+  request: FastifyRequest<{ Params: { comunidadeId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const resultado = await palpitesComunidade(request.params.comunidadeId, usuarioId)
+    return reply.send(resultado)
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function atualizarComunidadeController(
+  request: FastifyRequest<{ Params: { comunidadeId: string }; Body: AtualizarComunidadeBody }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const comunidade = await atualizarComunidade(usuarioId, request.params.comunidadeId, request.body)
     return reply.send(comunidade)
   } catch (e) {
     return handleError(e, reply)

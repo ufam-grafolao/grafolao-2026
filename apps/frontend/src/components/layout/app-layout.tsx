@@ -2,7 +2,7 @@ import { useLocation, Outlet, useNavigate, href } from 'react-router-dom'
 import {
   LayoutDashboard,
   ClipboardList,
-  // Trophy,
+  Trophy,
   GitFork,
   Network,
   Layers,
@@ -10,7 +10,12 @@ import {
   LogOut,
   ChevronDown,
   Users,
+  Bell,
+  BellOff,
+  Loader2,
+  HelpCircle,
 } from 'lucide-react'
+import { usePushNotifications } from '@/hooks/use-push-notifications'
 import {
   Sidebar,
   SidebarContent,
@@ -40,8 +45,9 @@ const navPrincipal = [
   { titulo: 'Painel', href: '/dashboard', icone: LayoutDashboard },
   { titulo: 'Jogos e Palpites', href: '/jogos', icone: ClipboardList },
   { titulo: 'Meus Palpites', href: '/meus-palpites', icone: ClipboardList },
-  // { titulo: 'Ranking', href: '/ranking', icone: Trophy },
+  { titulo: 'Ranking', href: '/ranking', icone: Trophy },
   { titulo: 'Grupos', href: '/comunidades', icone: Users },
+  { titulo: 'Ajuda', href: '/ajuda', icone: HelpCircle },
 ]
 
 const navGrafos = [
@@ -68,6 +74,7 @@ function getIniciais(nome: string) {
 export function AppLayout() {
   const { usuario, logout, isAdmin } = useAuth()
   const location = useLocation()
+  const { estado, processando, ativar, desativar } = usePushNotifications()
 
   const navigate = useNavigate()
   const isAtivo = (href: string) => location.pathname.startsWith(href)
@@ -148,6 +155,21 @@ export function AppLayout() {
           </SidebarContent>
 
           <SidebarFooter className="border-t p-2">
+            {estado !== 'sem-suporte' && estado !== 'negado' && (
+              <button
+                onClick={estado === 'inscrito' ? desativar : ativar}
+                disabled={estado === 'carregando' || processando}
+                title={estado === 'inscrito' ? 'Desativar notificações' : 'Ativar notificações'}
+                className="cursor-pointer flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {processando
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Aguarde...</span></>
+                  : estado === 'inscrito'
+                    ? <><Bell className="h-4 w-4 text-primary" /><span>Notificações ativas</span></>
+                    : <><BellOff className="h-4 w-4" /><span>Ativar notificações</span></>
+                }
+              </button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger className="cursor-pointer flex items-center gap-3 w-full rounded-lg p-2 hover:bg-sidebar-accent transition-colors">
                   <Avatar className="h-8 w-8">

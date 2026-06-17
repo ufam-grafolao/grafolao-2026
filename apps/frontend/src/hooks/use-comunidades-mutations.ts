@@ -270,6 +270,38 @@ export function useAlterarTipoComunidade(comunidadeId: string) {
   })
 }
 
+// ─── Atualizar nome/descrição da comunidade
+
+export function useAtualizarComunidade(comunidadeId: string) {
+  const qc = useQueryClient()
+  const headers = useAuthHeaders()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async (body: { nome?: string; descricao?: string }) => {
+      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error ?? 'Erro ao atualizar comunidade')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'detalhes'] })
+      qc.invalidateQueries({ queryKey: ['comunidades'] })
+      toast('success', 'Comunidade atualizada!')
+    },
+    onError: (error: Error) => {
+      const msgs: Record<string, string> = { SEM_PERMISSAO: 'Apenas o dono pode editar a comunidade.' }
+      toast('error', 'Erro ao atualizar', msgs[error.message] ?? error.message)
+    },
+  })
+}
+
 // sair da comunidade
 
 export function useSairComunidade() {

@@ -169,3 +169,18 @@ export const alterarTipoBodySchema = {
     },
   },
 }
+
+export interface AtualizarComunidadeBody {
+  nome?: string
+  descricao?: string
+}
+
+export const atualizarComunidadeBodySchema = {
+  body: {
+    type: 'object',
+    properties: {
+      nome:      { type: 'string', minLength: 3, maxLength: 50 },
+      descricao: { type: 'string', maxLength: 200 },
+    },
+  },
+}
