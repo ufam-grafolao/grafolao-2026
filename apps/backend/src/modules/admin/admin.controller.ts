@@ -4,6 +4,7 @@ import {
   atualizarStatusJogo,
   buscarJogosPendentes,
   buscarEstatisticas,
+  buscarAssinantesNotificacao,
 } from './admin.service.js'
 import type { InserirResultadoBody, AtualizarStatusBody } from './admin.schema.js'
 import type { JwtPayload } from '../auth/auth.schema.js'
@@ -70,4 +71,14 @@ export async function estatisticasController(
 ) {
   const stats = await buscarEstatisticas()
   return reply.send(stats)
+}
+
+// ─── GET /admin/push/assinantes ───────────────────────────────────────────────
+
+export async function assinantesNotificacaoController(
+  _request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const data = await buscarAssinantesNotificacao()
+  return reply.send(data)
 }

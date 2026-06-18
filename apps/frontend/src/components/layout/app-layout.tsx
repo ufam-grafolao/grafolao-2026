@@ -40,6 +40,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ThemeToggle } from './theme-toggle'
 import { useAuth } from '@/hooks/use-auth'
+import ufamLogo from '@/assets/UFAM.png'
 
 const navPrincipal = [
   { titulo: 'Painel', href: '/dashboard', icone: LayoutDashboard },
@@ -81,11 +82,11 @@ export function AppLayout() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
         <Sidebar>
           <SidebarHeader className="h-16 border-b p-4">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🏆</span>
+              <img src={ufamLogo} alt="UFAM" className="h-8 w-8 shrink-0 object-contain" />
               <div>
                 <p className="font-semibold text-sm leading-none">Grafolão</p>
                 <p className="text-xs text-muted-foreground mt-1">Copa 2026</p>
@@ -195,8 +196,8 @@ export function AppLayout() {
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex flex-col flex-1 min-w-0">
-          <header className="h-16 justify-between flex items-center gap-2 border-b px-4 h-14 shrink-0">
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <header className="h-16 justify-between flex items-center gap-2 border-b px-4 shrink-0">
             <SidebarTrigger />
             <div className="flex-1 text-center">
               <h1>Grafolão da Copa: Torneio de Palpiteiros</h1>
@@ -206,6 +207,14 @@ export function AppLayout() {
           <main className="flex-1 p-6 overflow-auto">
             <Outlet />
           </main>
+          <footer className="border-t px-6 py-3 flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+            <img src={ufamLogo} alt="UFAM" className="h-6 w-6 shrink-0 object-contain" />
+            <span>Grafolão da Copa · IComp/UFAM · 2026</span>
+            <span className="text-border">·</span>
+            <a href="/sobre" className="hover:text-foreground transition-colors">Sobre o projeto</a>
+            <span className="text-border">·</span>
+            <a href="/ajuda" className="hover:text-foreground transition-colors">Ajuda</a>
+          </footer>
         </div>
       </div>
     </SidebarProvider>

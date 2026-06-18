@@ -3,7 +3,7 @@ import JogoCard from "@/components/cards/jogo-card"
 import JogoCardLote, { type RascunhoLote } from "@/components/cards/jogo-card-lote"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useJogos } from "@/hooks/use-jogos"
 import { useJogosHoje } from "@/hooks/use-jogos-hoje"
 import { useMeusPalpites } from "@/hooks/use-palpites-meus"
@@ -158,6 +158,37 @@ export default function JogosPalpitesPage() {
     setModoLote(false)
   }
 
+  const [tabAtiva, setTabAtiva] = useState('hoje')
+
+  // Grupos únicos ordenados — só atualiza quando jogos chegam
+  const grupos = useMemo(() => {
+    if (!jogos) return []
+    const set = new Set<string>()
+    jogos.forEach(j => { if (j.grupo) set.add(j.grupo) })
+    return [...set].sort()
+  }, [jogos])
+
+  const temMataMata = useMemo(
+    () => jogos?.some(j => !j.grupo) ?? false,
+    [jogos]
+  )
+
+  // Filtra jogos conforme tab ativa — um único bloco de conteúdo
+  const jogosFiltrados = useMemo(() => {
+    if (tabAtiva === 'hoje') return jogosHoje
+    if (tabAtiva === 'todos') return jogos
+    if (tabAtiva === 'mata-mata') return jogos?.filter(j => !j.grupo)
+    if (tabAtiva.startsWith('grupo-')) {
+      const g = tabAtiva.replace('grupo-', '')
+      return jogos?.filter(j => j.grupo === g)
+    }
+    return jogos
+  }, [tabAtiva, jogos, jogosHoje])
+
+  const isLoadingAtual = tabAtiva === 'hoje'
+    ? loadingHoje || loadingPalpites
+    : loadingJogos || loadingPalpites
+
   return (
     <div className="h-full w-full flex flex-col gap-6">
       {/* Cabeçalho */}
@@ -177,13 +208,23 @@ export default function JogosPalpitesPage() {
         )}
       </div>
 
-      <Tabs defaultValue="todos" className="w-full h-full flex flex-col">
-        <TabsList variant="line">
-          <TabsTrigger value="todos">Todos</TabsTrigger>
-          <TabsTrigger value="hoje">Hoje</TabsTrigger>
-        </TabsList>
+      <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="w-full h-full flex flex-col">
+        <div className="overflow-x-auto shrink-0">
+          <TabsList variant="line" className="w-max min-w-full">
+            <TabsTrigger value="hoje">Hoje</TabsTrigger>
+            <TabsTrigger value="todos">Todos</TabsTrigger>
+            {grupos.map(g => (
+              <TabsTrigger key={g} value={`grupo-${g}`}>
+                {g.replace('Group', 'Grupo')}
+              </TabsTrigger>
+            ))}
+            {temMataMata && (
+              <TabsTrigger value="mata-mata">Mata-mata</TabsTrigger>
+            )}
+          </TabsList>
+        </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2 mb-1">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2 mb-1 shrink-0">
           <Clock className="h-3 w-3" />
           <span>Horários em GMT-4 (horário de Manaus)</span>
           {modoLote && (
@@ -193,43 +234,24 @@ export default function JogosPalpitesPage() {
           )}
         </div>
 
-        {/* Todos */}
-        <TabsContent className="flex-1 overflow-y-auto pr-2 mt-4" value="todos">
+        {/* Conteúdo único — muda conforme tab ativa */}
+        <div className="flex-1 overflow-y-auto pr-2 mt-4">
           {modoLote ? (
             <JogosGridLote
-              jogos={jogos}
-              isLoading={loadingJogos || loadingPalpites}
+              jogos={jogosFiltrados}
+              isLoading={isLoadingAtual}
               palpites={meusPalpites}
               rascunhos={rascunhos}
               onChange={handleChange}
             />
           ) : (
             <JogosGrid
-              jogos={jogos}
-              isLoading={loadingJogos || loadingPalpites}
+              jogos={jogosFiltrados}
+              isLoading={isLoadingAtual}
               palpites={meusPalpites}
             />
           )}
-        </TabsContent>
-
-        {/* Hoje */}
-        <TabsContent className="flex-1 overflow-y-auto pr-2 mt-4" value="hoje">
-          {modoLote ? (
-            <JogosGridLote
-              jogos={jogosHoje}
-              isLoading={loadingHoje || loadingPalpites}
-              palpites={meusPalpites}
-              rascunhos={rascunhos}
-              onChange={handleChange}
-            />
-          ) : (
-            <JogosGrid
-              jogos={jogosHoje}
-              isLoading={loadingHoje || loadingPalpites}
-              palpites={meusPalpites}
-            />
-          )}
-        </TabsContent>
+        </div>
       </Tabs>
 
       {/* Barra flutuante de ações do modo lote */}

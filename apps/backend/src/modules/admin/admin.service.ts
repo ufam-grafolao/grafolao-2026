@@ -141,6 +141,31 @@ export async function buscarEstatisticas() {
   return { totalUsuarios, totalPalpites, totalEspeciais, palpitesPorUsuario }
 }
 
+// ─── Assinantes de push notification ─────────────────────────────────────────
+
+export async function buscarAssinantesNotificacao() {
+  const assinantes = await prisma.pushSubscription.findMany({
+    select: {
+      id: true,
+      endpoint: true,
+      criadoEm: true,
+      usuario: {
+        select: { id: true, nome: true, email: true, avatarUrl: true },
+      },
+    },
+    orderBy: { criadoEm: 'desc' },
+  })
+
+  return {
+    total: assinantes.length,
+    assinantes: assinantes.map(s => ({
+      subscriptionId: s.id,
+      criadoEm:       s.criadoEm,
+      usuario:        s.usuario,
+    })),
+  }
+}
+
 // ─── Lista jogos sem resultado (pendentes) ────────────────────────────────────
 
 export async function buscarJogosPendentes() {

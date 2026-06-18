@@ -13,6 +13,7 @@ import Comunidades from './pages/comunidades'
 import ComunidadeDetalhePage from './pages/comunidade-detalhe'
 import RankingPage from './pages/ranking'
 import AjudaPage from './pages/ajuda'
+import SobrePage from './pages/sobre'
 import { Loader2 } from 'lucide-react'
 
 function GlobalLoading() {
@@ -54,6 +55,7 @@ export default function App() {
             <Route path='comunidades/:comunidadeId' element={<ComunidadeDetalhePage/>}/>
             <Route path="/ranking" element={<RankingPage />} />
             <Route path="/ajuda" element={<AjudaPage />} />
+            <Route path="/sobre" element={<SobrePage />} />
             <Route path="/grafos/confrontos" element={<div>Grafo de Confrontos - Duelo de Palpiteiros — em breve</div>} />
             <Route path="/grafos/dag" element={<div>Caminho Mínimo — em breve</div>} />
             <Route path="/grafos/cliques" element={<div>Cliques e Panelinhas - Comunidades Máximas — em breve</div>} />
