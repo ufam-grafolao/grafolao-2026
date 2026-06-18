@@ -27,10 +27,13 @@ import type {
 import type { JwtPayload as AuthJwtPayload } from '../auth/auth.schema.js'
 
 const errosHTTP: Record<string, number> = {
-  LIMITE_ATINGIDO: 403,
-  JA_MEMBRO:       409,
-  CODIGO_INVALIDO: 401,
-  SEM_PERMISSAO:   403,
+  LIMITE_ATINGIDO:      403,
+  JA_MEMBRO:            409,
+  SOLICITACAO_PENDENTE: 409,
+  CODIGO_INVALIDO:      401,
+  SEM_PERMISSAO:        403,
+  COMUNIDADE_PUBLICA:   400,
+  DONO_NAO_PODE_SAIR:   403,
 }
 
 function handleError(error: unknown, reply: FastifyReply) {

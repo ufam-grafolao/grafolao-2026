@@ -70,8 +70,11 @@ export function useEntrarComunidade() {
     toast('success', 'Você entrou na comunidade!')
     },
     onError: (error: Error) => {
+      if (error.message === 'JA_MEMBRO') {
+        toast('info', 'Você já é membro desta comunidade.')
+        return
+      }
       const msgs: Record<string, string> = {
-        JA_MEMBRO:      'Você já é membro desta comunidade.',
         CODIGO_INVALIDO: 'Código de convite inválido.',
       }
       toast('error', 'Erro ao entrar', msgs[error.message] ?? error.message)
@@ -104,12 +107,18 @@ export function useSolicitarEntrada() {
       toast('info', 'Solicitação enviada', 'Aguarde a aprovação dos moderadores.')
     },
     onError: (error: Error) => {
+      const infoKeys = ['JA_MEMBRO', 'SOLICITACAO_PENDENTE', 'COMUNIDADE_PUBLICA']
       const msgs: Record<string, string> = {
-        JA_MEMBRO:          'Você já é membro desta comunidade.',
-        SOLICITACAO_PENDENTE: 'Você já tem uma solicitação pendente.',
-        COMUNIDADE_PUBLICA:  'Esta comunidade é pública, entre diretamente.',
+        JA_MEMBRO:            'Você já é membro desta comunidade.',
+        SOLICITACAO_PENDENTE: 'Você já enviou uma solicitação. Aguarde a aprovação.',
+        COMUNIDADE_PUBLICA:   'Esta comunidade é pública, entre diretamente.',
       }
-      toast('error', 'Erro ao solicitar entrada', msgs[error.message] ?? error.message)
+      const msg = msgs[error.message]
+      if (msg && infoKeys.includes(error.message)) {
+        toast('info', msg)
+      } else {
+        toast('error', 'Erro ao solicitar entrada', msg ?? error.message)
+      }
     }
   })
 }
