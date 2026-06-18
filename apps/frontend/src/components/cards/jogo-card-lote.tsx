@@ -5,6 +5,7 @@ import { formatarHoraJogo } from "@/lib/utils"
 import { getRodada } from "@/lib/rodada"
 import type { Jogo } from "@/types/jogo"
 import type { PalpiteExistente } from "@/types/palpites"
+import { Lock } from "lucide-react"
 
 export interface RascunhoLote {
   jogoId: string
@@ -19,6 +20,20 @@ interface JogoCardLoteProps {
   onChange: (jogoId: string, campo: "golsCasa" | "golsVisitante", valor: number | null) => void
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  EM_ANDAMENTO: "Em andamento",
+  ENCERRADO:    "Encerrado",
+}
+
+function getStatusEfetivo(jogo: Jogo): string {
+  if (jogo.status === "ENCERRADO")    return "ENCERRADO"
+  if (jogo.status === "BLOQUEADO")    return "BLOQUEADO"
+  if (jogo.status === "EM_ANDAMENTO") return "EM_ANDAMENTO"
+  const inicioUtcReal = new Date(new Date(jogo.dataHora).getTime() + 4 * 60 * 60 * 1000)
+  if (new Date() >= inicioUtcReal)    return "EM_ANDAMENTO"
+  return "AGENDADO"
+}
+
 export default function JogoCardLote({ jogo, rascunho, palpiteExistente, onChange }: JogoCardLoteProps) {
   const nomeOriginalCasa      = jogo.timeCasa?.nome      ?? jogo.timeCasaRef      ?? "?"
   const nomeOriginalVisitante = jogo.timeVisitante?.nome ?? jogo.timeVisitanteRef ?? "?"
@@ -27,20 +42,32 @@ export default function JogoCardLote({ jogo, rascunho, palpiteExistente, onChang
   const codigoCasa      = getBandeira(nomeOriginalCasa)
   const codigoVisitante = getBandeira(nomeOriginalVisitante)
 
-  const temRascunho = rascunho.golsCasa !== null && rascunho.golsVisitante !== null
+  const statusEfetivo = getStatusEfetivo(jogo)
+  const bloqueado = statusEfetivo === "EM_ANDAMENTO" || statusEfetivo === "ENCERRADO"
+  const temRascunho = !bloqueado && rascunho.golsCasa !== null && rascunho.golsVisitante !== null
 
   function handleInput(campo: "golsCasa" | "golsVisitante", val: string) {
+    if (bloqueado) return
     if (val === "") { onChange(jogo.id, campo, null); return }
     const n = parseInt(val, 10)
     if (!isNaN(n) && n >= 0 && n <= 20) onChange(jogo.id, campo, n)
   }
 
   return (
-    <div className={`rounded-xl border bg-card p-3 flex flex-col gap-3 transition-colors ${temRascunho ? "border-primary/60" : ""}`}>
+    <div className={`rounded-xl border bg-card p-3 flex flex-col gap-3 transition-colors ${
+      bloqueado ? "opacity-50 border-border" : temRascunho ? "border-primary/60" : ""
+    }`}>
       {/* Cabeçalho mini */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{jogo.grupo ?? jogo.fase}, {getRodada(jogo.fase, jogo.rodada)}</span>
-        <span className="font-semibold text-foreground">{formatarHoraJogo(jogo.dataHora)}</span>
+        {bloqueado ? (
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <Lock className="h-3 w-3" />
+            {STATUS_LABEL[statusEfetivo] ?? statusEfetivo}
+          </span>
+        ) : (
+          <span className="font-semibold text-foreground">{formatarHoraJogo(jogo.dataHora)}</span>
+        )}
       </div>
 
       {/* Times + inputs */}
@@ -57,6 +84,7 @@ export default function JogoCardLote({ jogo, rascunho, palpiteExistente, onChang
             type="number"
             min={0}
             max={20}
+            disabled={bloqueado}
             className="w-12 h-9 text-center text-base font-bold px-1"
             value={rascunho.golsCasa ?? ""}
             placeholder={palpiteExistente ? String(palpiteExistente.golsCasa) : "–"}
@@ -67,6 +95,7 @@ export default function JogoCardLote({ jogo, rascunho, palpiteExistente, onChang
             type="number"
             min={0}
             max={20}
+            disabled={bloqueado}
             className="w-12 h-9 text-center text-base font-bold px-1"
             value={rascunho.golsVisitante ?? ""}
             placeholder={palpiteExistente ? String(palpiteExistente.golsVisitante) : "–"}
@@ -82,7 +111,7 @@ export default function JogoCardLote({ jogo, rascunho, palpiteExistente, onChang
       </div>
 
       {/* Palpite anterior (se existir) */}
-      {palpiteExistente && (
+      {palpiteExistente && !bloqueado && (
         <p className="text-[11px] text-muted-foreground text-center">
           Atual: {palpiteExistente.golsCasa}–{palpiteExistente.golsVisitante}
           {" · "}edições restantes: {2 - palpiteExistente.totalEdicoes}
