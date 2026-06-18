@@ -9,7 +9,8 @@ import { getBandeira } from '@/lib/bandeiras'
 import { useJogosPendentes } from '@/hooks/use-jogos-pendentes'
 import { useInserirResultado } from '@/hooks/use-resultado'
 import { useAdminStats } from '@/hooks/use-admin-stats'
-import { Loader2, Plus, X, Users, ClipboardList, Star, Search } from 'lucide-react'
+import { useAdminPush } from '@/hooks/use-admin-push'
+import { Loader2, Plus, X, Users, ClipboardList, Star, Search, Bell } from 'lucide-react'
 import { JogoPendente } from '@/types/jogo'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useJogosEncerrados } from '@/hooks/use-jogos-encerrados'
@@ -407,6 +408,87 @@ function TabEstatisticas() {
   )
 }
 
+// ─── Aba de notificações push ─────────────────────────────────────────────────
+
+function TabNotificacoes() {
+  const { data, isLoading } = useAdminPush()
+  const [busca, setBusca] = useState('')
+
+  const filtrados = (data?.assinantes ?? []).filter(a =>
+    a.usuario.nome.toLowerCase().includes(busca.toLowerCase()) ||
+    a.usuario.email.toLowerCase().includes(busca.toLowerCase())
+  )
+
+  return (
+    <div className="flex flex-col gap-6 mt-4">
+      <div className="flex items-center gap-3">
+        <Card className="flex-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Bell className="h-4 w-4" /> Assinantes ativos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading
+              ? <Skeleton className="h-9 w-16" />
+              : <p className="text-3xl font-semibold">{data?.total ?? 0}</p>
+            }
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-sm font-semibold">Quem está recebendo notificações</h2>
+          <div className="relative w-56">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar usuário..."
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              className="h-8 pl-8 text-sm"
+            />
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 rounded-lg" />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <div className="divide-y divide-border">
+              {filtrados.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  {busca ? 'Nenhum usuário encontrado.' : 'Nenhum assinante ainda.'}
+                </p>
+              ) : (
+                filtrados.map(a => (
+                  <div key={a.subscriptionId} className="flex items-center gap-3 px-4 py-2.5">
+                    <Avatar className="h-7 w-7 shrink-0">
+                      <AvatarImage src={a.usuario.avatarUrl ?? ''} alt={a.usuario.nome} />
+                      <AvatarFallback className="text-[10px]">{getIniciais(a.usuario.nome)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{a.usuario.nome}</p>
+                      <p className="text-xs text-muted-foreground truncate">{a.usuario.email}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      desde {new Date(a.criadoEm).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -424,6 +506,7 @@ export default function AdminPage() {
         </TabsTrigger>
         <TabsTrigger value="encerrados">Encerrados</TabsTrigger>
         <TabsTrigger value="stats">Estatísticas</TabsTrigger>
+        <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
       </TabsList>
 
       <TabsContent className="mt-4" value="pendentes">
@@ -472,6 +555,10 @@ export default function AdminPage() {
 
       <TabsContent value="stats">
         <TabEstatisticas />
+      </TabsContent>
+
+      <TabsContent value="notificacoes">
+        <TabNotificacoes />
       </TabsContent>
     </Tabs>
   )

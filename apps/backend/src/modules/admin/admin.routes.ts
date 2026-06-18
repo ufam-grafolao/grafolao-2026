@@ -4,6 +4,7 @@ import {
   atualizarStatusController,
   jogosPendentesController,
   estatisticasController,
+  assinantesNotificacaoController,
 } from './admin.controller.js'
 import {
   inserirResultadoBodySchema,
@@ -33,4 +34,9 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get('/admin/stats', {
     preHandler: [app.authenticate, apenasAdmin],
   }, estatisticasController as RouteHandlerMethod)
+
+  // Assinantes de push notification
+  app.get('/admin/push/assinantes', {
+    preHandler: [app.authenticate, apenasAdmin],
+  }, assinantesNotificacaoController as RouteHandlerMethod)
 }
