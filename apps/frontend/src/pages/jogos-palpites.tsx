@@ -194,7 +194,7 @@ export default function JogosPalpitesPage() {
         </div>
 
         {/* Todos */}
-        <TabsContent className="flex-1 overflow-y-auto pr-2 mt-4" value="todos">
+        <TabsContent className="flex-1 pr-2 mt-4" value="todos">
           {modoLote ? (
             <JogosGridLote
               jogos={jogos}

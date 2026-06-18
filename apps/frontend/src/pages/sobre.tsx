@@ -1,11 +1,16 @@
+import logosClaro from '@/assets/marcas_algox_icomp_ufam_colorida_fundo_branco.png'
+import logosEscuro from '@/assets/marcas_algox_icomp_ufam_brancas_para_fundo_preto_cor.png'
+
 export default function SobrePage() {
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-8 py-4">
+
       <div>
-        <h1 className="text-2xl font-bold mb-1">Sobre o Grafolão da Copa</h1>
-        <p className="text-sm text-muted-foreground">Copa do Mundo 2026 · IComp/UFAM</p>
+        <h1 className="text-2xl font-bold leading-tight">Sobre o Grafolão da Copa</h1>
+        <p className="text-sm text-muted-foreground mt-1">Copa do Mundo 2026 · IComp/UFAM</p>
       </div>
 
+      {/* Texto */}
       <div className="flex flex-col gap-4 text-sm leading-relaxed text-foreground/90">
         <p>
           O <strong>GRAFOLÃO DA COPA</strong> está no ar, misturando Bolão da Copa do Mundo 2026
@@ -19,10 +24,11 @@ export default function SobrePage() {
           <strong>Introdução à Teoria dos Grafos</strong>, período 2026/01, ministrada pela{' '}
           <strong>Profa. Rosiane de Freitas</strong>, que concebeu a proposta que está sendo
           desenvolvida por um grupo de alunos de Ciência da Computação do IComp/UFAM, com
-          desenvolvimento liderado pelo graduando <strong>Samuel Davi Silva de Lima Chagas</strong> sob
-          orientação da Profa. Rosiane, como parte das ações do grupo de pesquisa CNPq{' '}
-          <strong>ALGOX</strong> (Algoritmos, Otimização, Inteligência e Complexidade Computacional)
-          — Instituto de Computação da Universidade Federal do Amazonas (IComp/UFAM).
+          desenvolvimento liderado pelo graduando{' '}
+          <strong>Samuel Davi Silva de Lima Chagas</strong> sob orientação da Profa. Rosiane, como
+          parte das ações do grupo de pesquisa CNPq <strong>ALGOX</strong> (Algoritmos, Otimização,
+          Inteligência e Complexidade Computacional) — Instituto de Computação da Universidade
+          Federal do Amazonas (IComp/UFAM).
         </p>
 
         <p>
@@ -34,6 +40,7 @@ export default function SobrePage() {
         </p>
       </div>
 
+      {/* Funcionalidades de grafos */}
       <div>
         <h2 className="text-base font-semibold mb-3">
           Após a Fase de Grupos, a brincadeira ficará mais divertida:
@@ -58,6 +65,20 @@ export default function SobrePage() {
             </li>
           ))}
         </ul>
+      </div>
+
+      {/* Logos institucionais — tema adaptável */}
+      <div className="rounded-xl border border-border overflow-hidden">
+        <img
+          src={logosClaro}
+          alt="ALGOX · IComp · UFAM"
+          className="block dark:hidden w-full object-contain p-4"
+        />
+        <img
+          src={logosEscuro}
+          alt="ALGOX · IComp · UFAM"
+          className="hidden dark:block w-full object-contain p-4"
+        />
       </div>
 
       <p className="text-xs text-muted-foreground border-t border-border pt-4">
