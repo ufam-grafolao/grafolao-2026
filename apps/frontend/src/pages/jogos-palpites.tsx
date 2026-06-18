@@ -81,9 +81,9 @@ function JogosGridLote({
     )
   }
 
-  const agendados = jogos?.filter((j) => j.status === "AGENDADO") ?? []
+  const visiveis = jogos?.filter((j) => j.status !== "BLOQUEADO") ?? []
 
-  if (agendados.length === 0) {
+  if (visiveis.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-12">
         Nenhum jogo disponível para palpitar.
@@ -93,7 +93,7 @@ function JogosGridLote({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-24">
-      {agendados.map((jogo) => (
+      {visiveis.map((jogo) => (
         <JogoCardLote
           key={jogo.id}
           jogo={jogo}
