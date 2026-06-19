@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from './use-auth'
-import { API_URL } from '@/lib/env'
+import { apiFetch } from '@/lib/api-client'
 import { JogoPendente } from '@/types/jogo'
 
 export function useJogosEncerrados() {
@@ -8,13 +8,7 @@ export function useJogosEncerrados() {
 
   return useQuery<JogoPendente[]>({
     queryKey: ['admin', 'jogos', 'encerrados'],
-    queryFn: async () => {
-      const res = await fetch(`${API_URL}/jogos?status=ENCERRADO`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Falha ao buscar jogos encerrados')
-      return res.json()
-    },
+    queryFn: () => apiFetch<JogoPendente[]>('/jogos?status=ENCERRADO'),
     enabled: !!token,
     staleTime: 30 * 1000,
   })

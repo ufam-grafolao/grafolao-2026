@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from './use-auth'
-import { API_URL } from '@/lib/env'
+import { apiFetch } from '@/lib/api-client'
 
 export interface PalpiteMembro {
   usuarioId: string
@@ -30,13 +30,7 @@ export function useComunidadePalpites(comunidadeId: string | null) {
 
   return useQuery<JogoComPalpites[]>({
     queryKey: ['comunidades', comunidadeId, 'palpites'],
-    queryFn: async () => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}/palpites`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Falha ao buscar palpites')
-      return res.json()
-    },
+    queryFn: () => apiFetch<JogoComPalpites[]>(`/comunidades/${comunidadeId}/palpites`),
     enabled: !!token && !!comunidadeId,
     staleTime: 2 * 60 * 1000,
   })

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from './use-auth'
-import { API_URL } from '@/lib/env'
+import { apiFetch } from '@/lib/api-client'
 
 export interface PalpitesPorUsuario {
   usuarioId: string
@@ -24,13 +24,7 @@ export function useAdminStats() {
 
   return useQuery<AdminStats>({
     queryKey: ['admin', 'stats'],
-    queryFn: async () => {
-      const res = await fetch(`${API_URL}/admin/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Falha ao buscar estatísticas')
-      return res.json()
-    },
+    queryFn: () => apiFetch<AdminStats>('/admin/stats'),
     enabled: !!token,
     staleTime: 60 * 1000,
   })

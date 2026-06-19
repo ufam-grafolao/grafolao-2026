@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
-import { API_URL } from '@/lib/env'
+import { apiFetch } from '@/lib/api-client'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -10,9 +10,8 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 async function getVapidKey(): Promise<string> {
-  const res = await fetch(`${API_URL}/push/vapid-public-key`)
-  const data = await res.json()
-  return data.key as string
+  const data = await apiFetch<{ key: string }>('/push/vapid-public-key')
+  return data.key
 }
 
 type Estado = 'carregando' | 'sem-suporte' | 'negado' | 'inscrito' | 'nao-inscrito'
@@ -56,16 +55,9 @@ export function usePushNotifications() {
       })
 
       const subJson = sub.toJSON()
-      await fetch(`${API_URL}/push/subscribe`, {
+      await apiFetch('/push/subscribe', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          endpoint: subJson.endpoint,
-          keys: subJson.keys,
-        }),
+        body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
       })
 
       setEstado('inscrito')
@@ -82,12 +74,8 @@ export function usePushNotifications() {
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
       if (sub) {
-        await fetch(`${API_URL}/push/unsubscribe`, {
+        await apiFetch('/push/unsubscribe', {
           method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({ endpoint: sub.endpoint }),
         })
         await sub.unsubscribe()

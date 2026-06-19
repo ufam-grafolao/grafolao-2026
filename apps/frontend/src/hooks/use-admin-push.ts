@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from './use-auth'
-import { API_URL } from '@/lib/env'
+import { apiFetch } from '@/lib/api-client'
 
 export interface AssinanteNotificacao {
   subscriptionId: string
@@ -23,13 +23,7 @@ export function useAdminPush() {
 
   return useQuery<AdminPushData>({
     queryKey: ['admin', 'push', 'assinantes'],
-    queryFn: async () => {
-      const res = await fetch(`${API_URL}/admin/push/assinantes`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Falha ao buscar assinantes')
-      return res.json()
-    },
+    queryFn: () => apiFetch<AdminPushData>('/admin/push/assinantes'),
     enabled: !!token,
     staleTime: 60 * 1000,
   })

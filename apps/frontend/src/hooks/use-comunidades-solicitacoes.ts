@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/use-auth'
-import { API_URL } from '@/lib/env'
+import { apiFetch } from '@/lib/api-client'
 import type { SolicitacaoResponse } from '@/types/comunidade'
 
 export function useSolicitacoes(comunidadeId: string | null) {
@@ -8,13 +8,7 @@ export function useSolicitacoes(comunidadeId: string | null) {
 
   return useQuery<SolicitacaoResponse[]>({
     queryKey: ['comunidades', comunidadeId, 'solicitacoes'],
-    queryFn: async () => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}/solicitacoes`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Erro ao buscar solicitações')
-      return res.json()
-    },
+    queryFn: () => apiFetch<SolicitacaoResponse[]>(`/comunidades/${comunidadeId}/solicitacoes`),
     enabled: !!token && !!comunidadeId,
     staleTime: 30 * 1000,
   })

@@ -1,11 +1,9 @@
-import { API_URL } from "@/lib/env"
+import { apiFetch } from '@/lib/api-client'
 import { useQueryClient } from "@tanstack/react-query"
-import { useAuth } from "./use-auth"
 import { useToast } from "@/lib/toast"
 import { PalpitarInput } from "@/types/palpites"
 
 export function usePalpitarLote() {
-  const { token } = useAuth()
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -19,15 +17,7 @@ export function usePalpitarLote() {
     await Promise.all(
       palpites.map(async (p) => {
         try {
-          const res = await fetch(`${API_URL}/palpites`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(p),
-          })
-          if (!res.ok) throw new Error()
+          await apiFetch('/palpites', { method: 'POST', body: JSON.stringify(p) })
           sucesso++
         } catch {
           erro++
