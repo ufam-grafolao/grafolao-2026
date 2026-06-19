@@ -1,20 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/use-auth'
-import { API_URL } from '@/lib/env'
-import type { ComunidadeListaResponse, ComunidadeResponse } from '@/types/comunidade'
+import { apiFetch } from '@/lib/api-client'
+import type { ComunidadeListaResponse } from '@/types/comunidade'
 
 export function useComunidades() {
   const { token } = useAuth()
 
   return useQuery<ComunidadeListaResponse[]>({
     queryKey: ['comunidades'],
-    queryFn: async () => {
-      const res = await fetch(`${API_URL}/comunidades`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Erro ao buscar comunidades')
-      return res.json()
-    },
+    queryFn: () => apiFetch<ComunidadeListaResponse[]>('/comunidades'),
     enabled: !!token,
     staleTime: 1 * 60 * 1000,
   })

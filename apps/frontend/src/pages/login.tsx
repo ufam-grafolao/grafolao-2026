@@ -3,10 +3,14 @@ import logosEscuro from '@/assets/marcas_algox_icomp_ufam_brancas_para_fundo_pre
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { API_URL } from '@/lib/env'
+import { useSearchParams } from 'react-router-dom'
 
 export function LoginPage() {
   const { isAutenticado } = useAuth()
   const navigate = useNavigate()
+
+  const [searchParams] = useSearchParams()
+  const erro = searchParams.get('erro')
 
   useEffect(() => {
     if (isAutenticado()) {
@@ -106,6 +110,12 @@ export function LoginPage() {
           {/* Divisor */}
           <div className="w-full mb-6" style={{ height: 1, background: 'rgba(255,255,255,0.12)' }} />
 
+          {erro === 'sessao_expirada' && (
+            <p className="text-sm text-destructive text-center mb-4">
+              Sua sessão expirou. Faça login novamente.
+            </p>
+          )}
+          
           {/* Botão Google */}
           <button
             onClick={handleLogin}

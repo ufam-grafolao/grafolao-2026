@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useAuth } from '@/hooks/use-auth'
-import { API_URL } from '@/lib/env'
+import { apiFetch } from '@/lib/api-client'
 import type {
   CriarComunidadeBody,
   EntrarComunidadeBody,
@@ -9,37 +8,21 @@ import type {
 } from '@/types/comunidade'
 import { useToast } from '@/lib/toast'
 
-function useAuthHeaders() {
-  const { token } = useAuth()
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-}
-
 // ─── Criar comunidade
 
 export function useCriarComunidade() {
   const qc = useQueryClient()
-  const headers = useAuthHeaders()
-  const {toast} = useToast()
+  const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (body: CriarComunidadeBody) => {
-      const res = await fetch(`${API_URL}/comunidades`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao criar comunidade')
-      }
-      return res.json()
-    },
+    mutationFn: (body: CriarComunidadeBody) =>
+      apiFetch('/comunidades', { method: 'POST', body: JSON.stringify(body) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comunidades'] })
       toast('success', 'Comunidade criada com sucesso!')
     },
     onError: (error: Error) => {
-      toast('error','Erro ao criar a comunidade' ,error.message)
+      toast('error', 'Erro ao criar a comunidade', error.message)
     }
   })
 }
@@ -48,26 +31,14 @@ export function useCriarComunidade() {
 
 export function useEntrarComunidade() {
   const qc = useQueryClient()
-  const headers = useAuthHeaders()
-  const {toast} = useToast()
+  const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async ({ comunidadeId, body }: { comunidadeId: string; body: EntrarComunidadeBody }) => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}/entrar`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao entrar na comunidade')
-      }
-      return res.json()
-    },
+    mutationFn: ({ comunidadeId, body }: { comunidadeId: string; body: EntrarComunidadeBody }) =>
+      apiFetch(`/comunidades/${comunidadeId}/entrar`, { method: 'POST', body: JSON.stringify(body) }),
     onSuccess: () => {
-    qc.invalidateQueries({ queryKey: ['comunidades'] })
-    toast('success', 'Você entrou na comunidade!')
+      qc.invalidateQueries({ queryKey: ['comunidades'] })
+      toast('success', 'Você entrou na comunidade!')
     },
     onError: (error: Error) => {
       if (error.message === 'JA_MEMBRO') {
@@ -86,22 +57,11 @@ export function useEntrarComunidade() {
 
 export function useSolicitarEntrada() {
   const qc = useQueryClient()
-  const headers = useAuthHeaders()
-  const {toast} = useToast()
-  const { 'Content-Type': _, ...headersAuth } = headers
+  const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (comunidadeId: string) => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}/solicitar`, {
-        method: 'POST',
-        headers: headersAuth,
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao solicitar entrada')
-      }
-      return res.json()
-    },
+    mutationFn: (comunidadeId: string) =>
+      apiFetch(`/comunidades/${comunidadeId}/solicitar`, { method: 'POST' }),
     onSuccess: (_data, comunidadeId) => {
       qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'solicitacoes'] })
       toast('info', 'Solicitação enviada', 'Aguarde a aprovação dos moderadores.')
@@ -127,22 +87,14 @@ export function useSolicitarEntrada() {
 
 export function useResponderSolicitacao(comunidadeId: string) {
   const qc = useQueryClient()
-  const headers = useAuthHeaders()
-  const {toast} = useToast()
+  const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async ({ solicitacaoId, aceitar }: { solicitacaoId: string; aceitar: boolean }) => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}/solicitacoes/${solicitacaoId}`, {
+    mutationFn: ({ solicitacaoId, aceitar }: { solicitacaoId: string; aceitar: boolean }) =>
+      apiFetch(`/comunidades/${comunidadeId}/solicitacoes/${solicitacaoId}`, {
         method: 'PATCH',
-        headers,
         body: JSON.stringify({ aceitar }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao responder solicitação')
-      }
-      return res.json()
-    },
+      }),
     onSuccess: (_data, { aceitar }) => {
       qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'solicitacoes'] })
       qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'detalhes'] })
@@ -158,21 +110,11 @@ export function useResponderSolicitacao(comunidadeId: string) {
 
 export function useExpulsarMembro(comunidadeId: string) {
   const qc = useQueryClient()
-  const headers = useAuthHeaders()
-  const {toast} = useToast()
-  const { 'Content-Type': _, ...headersAuth } = headers
+  const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (membroId: string) => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}/membros/${membroId}`, {
-        method: 'DELETE',
-        headers: headersAuth,
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao expulsar membro')
-      }
-    },
+    mutationFn: (membroId: string) =>
+      apiFetch(`/comunidades/${comunidadeId}/membros/${membroId}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'detalhes'] })
       qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'ranking'] })
@@ -189,22 +131,11 @@ export function useExpulsarMembro(comunidadeId: string) {
 
 export function usePromoverMembro(comunidadeId: string) {
   const qc = useQueryClient()
-  const headers = useAuthHeaders()
-  const {toast} = useToast()
+  const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (body: PromoverMembroBody) => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}/membros/promover`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao alterar cargo')
-      }
-      return res.json()
-    },
+    mutationFn: (body: PromoverMembroBody) =>
+      apiFetch(`/comunidades/${comunidadeId}/membros/promover`, { method: 'PATCH', body: JSON.stringify(body) }),
     onSuccess: (_data, { role }) => {
       qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'detalhes'] })
       toast('success', role === 'MODERADOR' ? 'Membro promovido a moderador' : 'Membro rebaixado')
@@ -213,7 +144,6 @@ export function usePromoverMembro(comunidadeId: string) {
       const msgs: Record<string, string> = { SEM_PERMISSAO: 'Apenas o dono pode alterar cargos.' }
       toast('error', 'Erro ao alterar cargo', msgs[error.message] ?? error.message)
     }
-
   })
 }
 
@@ -221,21 +151,11 @@ export function usePromoverMembro(comunidadeId: string) {
 
 export function useDeletarComunidade() {
   const qc = useQueryClient()
-  const headers = useAuthHeaders()
-  const {toast} = useToast()
-  const { 'Content-Type': _, ...headersAuth } = headers
+  const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (comunidadeId: string) => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}`, {
-        method: 'DELETE',
-        headers: headersAuth,
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao deletar comunidade')
-      }
-    },
+    mutationFn: (comunidadeId: string) =>
+      apiFetch(`/comunidades/${comunidadeId}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comunidades'] })
       toast('success', 'Comunidade deletada')
@@ -251,22 +171,11 @@ export function useDeletarComunidade() {
 
 export function useAlterarTipoComunidade(comunidadeId: string) {
   const qc = useQueryClient()
-  const headers = useAuthHeaders()
-  const {toast} = useToast()
+  const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (tipo: TipoComunidade) => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}/tipo`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ tipo }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao alterar tipo')
-      }
-      return res.json()
-    },
+    mutationFn: (tipo: TipoComunidade) =>
+      apiFetch(`/comunidades/${comunidadeId}/tipo`, { method: 'PATCH', body: JSON.stringify({ tipo }) }),
     onSuccess: (_data, tipo) => {
       qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'detalhes'] })
       qc.invalidateQueries({ queryKey: ['comunidades'] })
@@ -283,22 +192,11 @@ export function useAlterarTipoComunidade(comunidadeId: string) {
 
 export function useAtualizarComunidade(comunidadeId: string) {
   const qc = useQueryClient()
-  const headers = useAuthHeaders()
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (body: { nome?: string; descricao?: string }) => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao atualizar comunidade')
-      }
-      return res.json()
-    },
+    mutationFn: (body: { nome?: string; descricao?: string }) =>
+      apiFetch(`/comunidades/${comunidadeId}`, { method: 'PATCH', body: JSON.stringify(body) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'detalhes'] })
       qc.invalidateQueries({ queryKey: ['comunidades'] })
@@ -315,20 +213,11 @@ export function useAtualizarComunidade(comunidadeId: string) {
 
 export function useSairComunidade() {
   const qc = useQueryClient()
-  const {toast} = useToast()
-  const { 'Content-Type': _, ...headersAuth } = useAuthHeaders()
+  const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (comunidadeId: string) => {
-      const res = await fetch(`${API_URL}/comunidades/${comunidadeId}/sair`, {
-        method: 'DELETE',
-        headers: headersAuth,
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Erro ao sair da comunidade')
-      }
-    },
+    mutationFn: (comunidadeId: string) =>
+      apiFetch(`/comunidades/${comunidadeId}/sair`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comunidades'] })
       toast('success', 'Você saiu da comunidade')

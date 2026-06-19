@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/use-auth'
-import { API_URL } from '@/lib/env'
+import { apiFetch } from '@/lib/api-client'
 import type { Jogo } from '@/types/jogo'
 
 interface JogosParams {
@@ -21,13 +21,7 @@ export function useJogos(params: JogosParams = {}) {
 
   return useQuery<Jogo[]>({
     queryKey: ['jogos', params],
-    queryFn: async () => {
-      const res = await fetch(`${API_URL}/jogos?${query}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error('Falha ao buscar jogos');
-      return res.json()
-    },
+    queryFn: () => apiFetch<Jogo[]>(`/jogos?${query}`),
     enabled: !!token,
     staleTime: 2 * 60 * 1000,
   })
