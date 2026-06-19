@@ -6,6 +6,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import 'flag-icons/css/flag-icons.min.css'
 import { ErrorBoundary } from './components/layout/error-boundary.tsx'
 import { ToastProvider } from './lib/toast.tsx'
+import * as Sentry from '@sentry/react'
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.MODE,
+  integrations: [
+    Sentry.browserTracingIntegration(),
+  ],
+  tracesSampleRate: import.meta.env.MODE === 'production' ? 0.2 : 1.0,
+  enabled: import.meta.env.MODE === 'production',
+})
 
 const queryClient = new QueryClient({
   defaultOptions: {
