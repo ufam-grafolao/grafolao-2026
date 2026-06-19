@@ -1,5 +1,6 @@
-import { Component, ReactNode } from 'react'
+import { Component, ErrorInfo, ReactNode } from 'react'
 import { Button } from '../ui/button'
+import * as Sentry from '@sentry/react'
 
 export class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -9,6 +10,14 @@ export class ErrorBoundary extends Component<
 
   static getDerivedStateFromError() {
     return { erro: true }
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    Sentry.captureException(error, {
+      extra: {
+        componentStack: info.componentStack,
+      },
+    })
   }
 
   render() {
