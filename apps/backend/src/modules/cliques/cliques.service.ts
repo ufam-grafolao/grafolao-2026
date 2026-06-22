@@ -65,7 +65,7 @@ async function obterBipartido(acertos: boolean): Promise<Bipartido> {
       },
     })
   ]);
-  
+
   return new Bipartido(
     Object.fromEntries(
       usuarios.map(usuario => [
@@ -96,7 +96,7 @@ function bronKerboschBipartido(
 
   // Escolher um pivô para reduzir recursões
   const pivo = (Pu.values().next().value ?? Pj.values().next().value) as string;
-  
+
   let PFiltrado: string[] | undefined;
 
   // Iterar apenas pelos não-vizinhos de `pivo` nos subconjuntos correspondentes
@@ -105,7 +105,7 @@ function bronKerboschBipartido(
   } else {
     PFiltrado = [...Pu].filter(u => !G.aresta(u, pivo));
   }
-  
+
   // Caso pivo ∈ P
   if (Pu.has(pivo) || Pj.has(pivo))
     PFiltrado.push(pivo);
@@ -116,11 +116,11 @@ function bronKerboschBipartido(
       const newRu = new Set(Ru).add(v);
       const newPu = new Set(Pu);
       newPu.delete(v);
-      
+
       bronKerboschBipartido(
         G,
         [newRu, Rj],
-        [newPu,       new Set([...Pj].filter(j => G.aresta(v, j)))],
+        [newPu, new Set([...Pj].filter(j => G.aresta(v, j)))],
         [new Set(Xu), new Set([...Xj].filter(j => G.aresta(v, j)))],
         cliques
       );
@@ -132,7 +132,7 @@ function bronKerboschBipartido(
       const newRj = new Set(Rj).add(v);
       const newPj = new Set(Pj);
       newPj.delete(v);
-      
+
       bronKerboschBipartido(
         G,
         [Ru, newRj],
@@ -147,7 +147,86 @@ function bronKerboschBipartido(
   }
 }
 
+function jogosVizinhosDeUsuario(G: Bipartido, usuarioId: string): Set<string> {
+  const jogos = new Set<string>();
 
+  for (const [jogoId, usuarios] of G.conjuntoJogos.entries()) {
+    if (usuarios.has(usuarioId)) jogos.add(jogoId);
+  }
+
+  return jogos;
+}
+
+function usuariosVizinhosDeJogo(G: Bipartido, jogoId: string): Set<string> {
+  return new Set(G.conjuntoJogos.get(jogoId) ?? []);
+}
+
+/**
+ * Calcula os conjuntos de usuários e jogos na vizinhança estendida de um vértice `v` em um grafo bipartido `G`.
+ * @param G Um grafo bipartido (usuarios x jogos).
+ * @param v Um vértice do grafo (pode ser um usuário ou um jogo).
+ * @param usuariosAtivos Conjunto de usuários ainda presentes no subgrafo induzido.
+ * @returns Um par de conjuntos contendo os vértices de U e V pertencentes a N_P(v).
+ */
+function projectionExtendedNeighborhood(
+  G: Bipartido,
+  v: string,
+  usuariosAtivos: Set<string> = G.conjuntoUsuarios,
+): [Set<string>, Set<string>] {
+  if (G.conjuntoUsuarios.has(v)) {
+    const jogos = jogosVizinhosDeUsuario(G, v);
+    const usuarios = new Set<string>();
+
+    for (const jogoId of jogos) {
+      for (const usuarioId of usuariosVizinhosDeJogo(G, jogoId)) {
+        if (usuarioId !== v && usuariosAtivos.has(usuarioId)) usuarios.add(usuarioId);
+      }
+    }
+
+    return [usuarios, jogos];
+  }
+
+  const usuarios = new Set<string>();
+  const jogos = new Set<string>();
+
+  for (const usuarioId of usuariosVizinhosDeJogo(G, v)) {
+    if (!usuariosAtivos.has(usuarioId)) continue;
+    usuarios.add(usuarioId);
+
+    for (const jogoId of jogosVizinhosDeUsuario(G, usuarioId)) {
+      if (jogoId !== v) jogos.add(jogoId);
+    }
+  }
+
+  return [usuarios, jogos];
+}
+
+function obterOrdemBidegenerescenciaUsuarios(G: Bipartido): string[] {
+  const restantes = new Set(G.conjuntoUsuarios);
+  const ordem: string[] = [];
+
+  while (restantes.size > 0) {
+    let melhorUsuario: string | undefined;
+    let menorVizinhos = Number.POSITIVE_INFINITY;
+
+    for (const usuarioId of restantes) {
+      const [usuarios, jogos] = projectionExtendedNeighborhood(G, usuarioId, restantes);
+      const tamanho = usuarios.size + jogos.size;
+
+      if (tamanho < menorVizinhos) {
+        menorVizinhos = tamanho;
+        melhorUsuario = usuarioId;
+      }
+    }
+
+    if (melhorUsuario === undefined) break;
+
+    ordem.push(melhorUsuario);
+    restantes.delete(melhorUsuario);
+  }
+
+  return ordem;
+}
 
 export type UsuarioEmClique = Usuario & { id: string };
 
@@ -156,50 +235,29 @@ export type Clique = {
   jogos: string[],
 };
 
-/**
- * Calcula os conjuntos de usuários e jogos na vizinhança estendida de um vértice `v` em um grafo bipartido `G`.
- * @param G Um grafo bipartido (usuarios x jogos).
- * @param v Um vértice do grafo (pode ser um usuário ou um jogo).
- * @returns Um par de conjuntos contendo usuários-vizinhos de `v` e os jogos-vizinhos de `v`
- * nessa projection-extended neighborhood.
- */
-function projectionExtendedNeighborhood(G: Bipartido, v: string): [Set<string>, Set<string>] {
-  const vizinhos = G.conjuntoUsuarios.has(v) ? G.conjuntoJogos.get(v) ?? new Set() : new Set([...G.conjuntoUsuarios].filter(u => G.aresta(u, v)));
-  return G.conjuntoUsuarios.has(v) ? [new Set(), vizinhos] : [vizinhos, new Set()];
-}
-
 export async function encontrarPanelinhasMaximais(acertos: boolean): Promise<Clique[]> {
   const G = await obterBipartido(acertos);
-  
-  const cliques: [string[], string[]][] = [];
-  
-  /*
-  for each ui in a bidegeneracy order u1, u2, . . . , un of U do
-    Pi ← N P (ui) \ {u1, . . . , ui−1}
-    Xi ← N P (ui) ∩ {u1, . . . , ui−1}
-    BipBronKerbosch({ui}, Pi, Xi)
-  */
 
-  for (const ui of G.conjuntoUsuarios) {
-    const Pi = new Set([...G.conjuntoJogos.keys()].filter(j => G.aresta(ui, j)));
-    const Xi = new Set<string>();
+  const cliques: [string[], string[]][] = [];
+
+  const ordemUsuarios = obterOrdemBidegenerescenciaUsuarios(G);
+  const usuariosAnteriores = new Set<string>();
+
+  for (const ui of ordemUsuarios) {
+    const [usuariosNP, jogosNP] = projectionExtendedNeighborhood(G, ui);
+    const Pi = new Set([...usuariosNP].filter(usuarioId => !usuariosAnteriores.has(usuarioId)));
+    const Xi = new Set([...usuariosNP].filter(usuarioId => usuariosAnteriores.has(usuarioId)));
 
     bronKerboschBipartido(
       G,
       [new Set<string>([ui]), new Set<string>()],
-      [Pi, new Set<string>()],
+      [Pi, jogosNP],
       [Xi, new Set<string>()],
       cliques
     );
-  }
 
-  bronKerboschBipartido(
-    G,
-    [new Set<string>(), new Set<string>()],
-    [new Set<string>(G.conjuntoUsuarios), new Set<string>(G.conjuntoJogos.keys())],
-    [new Set<string>(), new Set<string>()],
-    cliques
-  );
+    usuariosAnteriores.add(ui);
+  }
 
   return cliques
     .sort((a, b) => (b[0].length - a[0].length) || (b[1].length - a[1].length)) // Ordenar por tamanho decrescente em usuarios
