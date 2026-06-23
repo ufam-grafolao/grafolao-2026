@@ -19,10 +19,12 @@ class Bipartido {
     },
     public readonly conjuntoUsuarios: Set<string>,
     public readonly conjuntoJogos: Map<string, Set<string>>,
+    public readonly jogosPorUsuario: Map<string, Set<string>>,
   ) {
     this.usuarios = usuarios;
     this.conjuntoUsuarios = conjuntoUsuarios;
     this.conjuntoJogos = conjuntoJogos;
+    this.jogosPorUsuario = jogosPorUsuario;
   }
 
   // Verifica se há uma aresta entre o usuário `u` e o jogo `j`.
@@ -75,9 +77,21 @@ async function obterBipartido(acertos: boolean): Promise<Bipartido> {
     ),
     new Set(usuarios.map(usuario => usuario.id)),
     new Map(jogos.map(jogo => [jogo.id, new Set(jogo.palpites.map(palpite => palpite.usuarioId))])),
+    new Map(usuarios.map(usuario => [
+      usuario.id,
+      new Set(usuario.palpites.map(palpite => palpite.jogoId))
+    ])),
   );
 }
 
+/**
+ * @brief Executa o algoritmo Bipartite Bron-Kerbosch, com uma mínima adaptação para evitar a enumeração de bicliques com apenas 1 vértice em um dos conjuntos.
+ * @param G Grafo bipartido (usuarios x jogos)
+ * @param [Ru, Rj] Conjunto de vértices atualmente na clique (usuarios, jogos)
+ * @param [Pu, Pj] Conjunto de vértices candidatos a serem adicionados à clique (usuarios, jogos)
+ * @param [Xu, Xj] Conjunto de vértices já processados (usuarios, jogos)
+ * @param cliques Lista de bicliques maximais encontrados
+ */
 function bronKerboschBipartido(
   G: Bipartido,
   [Ru, Rj]: [Set<string>, Set<string>],
@@ -85,7 +99,10 @@ function bronKerboschBipartido(
   [Xu, Xj]: [Set<string>, Set<string>],
   cliques: [string[], string[]][]
 ) {
-  if ((Pu.size === 0 || Pj.size === 0) && Xu.size === 0 && Xj.size === 0) {
+  if (
+    (Pu.size === 0 || Pj.size === 0) && Xu.size === 0 && Xj.size === 0
+    && (Ru.size + Pu.size) > 0 && (Rj.size + Pj.size) > 0 // Remove bicliques com apenas 1 participante ou apenas 1 jogo
+  ) {
     // Adicionar R U P como um biclique maximal
     cliques.push([[...Ru, ...Pu], [...Rj, ...Pj]]);
     return;
@@ -148,13 +165,7 @@ function bronKerboschBipartido(
 }
 
 function jogosVizinhosDeUsuario(G: Bipartido, usuarioId: string): Set<string> {
-  const jogos = new Set<string>();
-
-  for (const [jogoId, usuarios] of G.conjuntoJogos.entries()) {
-    if (usuarios.has(usuarioId)) jogos.add(jogoId);
-  }
-
-  return jogos;
+  return new Set(G.jogosPorUsuario.get(usuarioId) ?? []);
 }
 
 function usuariosVizinhosDeJogo(G: Bipartido, jogoId: string): Set<string> {
@@ -202,6 +213,34 @@ function projectionExtendedNeighborhood(
 }
 
 function obterOrdemBidegenerescenciaUsuarios(G: Bipartido): string[] {
+  const vizinhosProjetados = new Map<string, Set<string>>();
+  const grauAtual = new Map<string, number>();
+
+  for (const usuarioId of G.conjuntoUsuarios) {
+    vizinhosProjetados.set(usuarioId, new Set<string>());
+    grauAtual.set(usuarioId, G.jogosPorUsuario.get(usuarioId)?.size ?? 0);
+  }
+
+  for (const usuariosDoJogo of G.conjuntoJogos.values()) {
+    const listaUsuarios = [...usuariosDoJogo];
+
+    for (let i = 0; i < listaUsuarios.length; i++) {
+      const usuarioId = listaUsuarios[i];
+      const vizinhosDoUsuario = vizinhosProjetados.get(usuarioId)!;
+
+      for (let j = 0; j < listaUsuarios.length; j++) {
+        if (i === j) continue;
+
+        const outroUsuarioId = listaUsuarios[j];
+
+        if (!vizinhosDoUsuario.has(outroUsuarioId)) {
+          vizinhosDoUsuario.add(outroUsuarioId);
+          grauAtual.set(usuarioId, (grauAtual.get(usuarioId) ?? 0) + 1);
+        }
+      }
+    }
+  }
+
   const restantes = new Set(G.conjuntoUsuarios);
   const ordem: string[] = [];
 
@@ -210,8 +249,7 @@ function obterOrdemBidegenerescenciaUsuarios(G: Bipartido): string[] {
     let menorVizinhos = Number.POSITIVE_INFINITY;
 
     for (const usuarioId of restantes) {
-      const [usuarios, jogos] = projectionExtendedNeighborhood(G, usuarioId, restantes);
-      const tamanho = usuarios.size + jogos.size;
+      const tamanho = grauAtual.get(usuarioId) ?? 0;
 
       if (tamanho < menorVizinhos) {
         menorVizinhos = tamanho;
@@ -223,6 +261,11 @@ function obterOrdemBidegenerescenciaUsuarios(G: Bipartido): string[] {
 
     ordem.push(melhorUsuario);
     restantes.delete(melhorUsuario);
+
+    for (const vizinhoId of vizinhosProjetados.get(melhorUsuario) ?? []) {
+      if (!restantes.has(vizinhoId)) continue;
+      grauAtual.set(vizinhoId, (grauAtual.get(vizinhoId) ?? 0) - 1);
+    }
   }
 
   return ordem;
@@ -240,29 +283,27 @@ export async function encontrarPanelinhasMaximais(acertos: boolean): Promise<Cli
 
   const cliques: [string[], string[]][] = [];
 
-  const ordemUsuarios = obterOrdemBidegenerescenciaUsuarios(G);
-  const usuariosAnteriores = new Set<string>();
+   const ordemUsuarios = obterOrdemBidegenerescenciaUsuarios(G);
+   const usuariosAnteriores = new Set<string>();
 
-  for (const ui of ordemUsuarios) {
-    const [usuariosNP, jogosNP] = projectionExtendedNeighborhood(G, ui);
-    const Pi = new Set([...usuariosNP].filter(usuarioId => !usuariosAnteriores.has(usuarioId)));
-    const Xi = new Set([...usuariosNP].filter(usuarioId => usuariosAnteriores.has(usuarioId)));
+   for (const ui of ordemUsuarios) {
+     const [usuariosNP, jogosNP] = projectionExtendedNeighborhood(G, ui);
+     const Pi = new Set([...usuariosNP].filter(usuarioId => !usuariosAnteriores.has(usuarioId)));
+     const Xi = new Set([...usuariosNP].filter(usuarioId => usuariosAnteriores.has(usuarioId)));
 
-    bronKerboschBipartido(
-      G,
-      [new Set<string>([ui]), new Set<string>()],
-      [Pi, jogosNP],
-      [Xi, new Set<string>()],
-      cliques
-    );
+     bronKerboschBipartido(
+       G,
+       [new Set<string>([ui]), new Set<string>()],
+       [Pi, jogosNP],
+       [Xi, new Set<string>()],
+       cliques
+     );
 
-    usuariosAnteriores.add(ui);
-  }
+     usuariosAnteriores.add(ui);
+   }
 
   return cliques
-    .sort((a, b) => (b[0].length - a[0].length) || (b[1].length - a[1].length)) // Ordenar por tamanho decrescente em usuarios
-    .filter(([_, jogoIds]) => jogoIds.length > 2) // Filtrar cliques com 3 ou mais jogos
-    .filter(([usuarioIds, _]) => usuarioIds.length > 2) // Filtrar cliques com 3 ou mais usuarios
+    .sort((a, b) => (b[0].length * b[1].length) - (a[0].length * a[1].length)) // Ordenar por tamanho decrescente em arestas (|U| * |V|)
     .map(([usuarioIds, jogoIds]) => {
       return {
         usuarios: usuarioIds.map(usuarioId => ({
