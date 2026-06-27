@@ -1,7 +1,7 @@
 import prisma from '../../db/prisma.js'
 import type { CriarPalpiteBody } from './palpites.schema.js'
 
-// ─── Select padrão de palpite ─────────────────────────────────────────────────
+// ─── Select padrão de palpite
 
 const palpiteSelect = {
   id: true,
@@ -27,7 +27,7 @@ const palpiteSelect = {
   },
 }
 
-// ─── Valida se o jogo existe e está aberto para palpites ─────────────────────
+// ─── Valida se o jogo existe e está aberto para palpites
 
 async function validarJogo(jogoId: string) {
   const jogo = await prisma.jogo.findUnique({
@@ -56,7 +56,7 @@ async function validarJogo(jogoId: string) {
   return { jogo }
 }
 
-// ─── Cria ou atualiza palpite (upsert) ───────────────────────────────────────
+// ─── Cria ou atualiza palpite (upsert)
 
 export async function upsertPalpite(usuarioId: string, body: CriarPalpiteBody) {
   const validacao = await validarJogo(body.jogoId)
@@ -100,7 +100,7 @@ export async function upsertPalpite(usuarioId: string, body: CriarPalpiteBody) {
   return { palpite }
 }
 
-// ─── Busca todos os palpites do usuário ───────────────────────────────────────
+// ─── Busca todos os palpites do usuário
 
 export async function buscarMeusPalpites(usuarioId: string) {
   return prisma.palpite.findMany({
@@ -110,7 +110,7 @@ export async function buscarMeusPalpites(usuarioId: string) {
   })
 }
 
-// ─── Busca palpite do usuário em um jogo específico ──────────────────────────
+// ─── Busca palpite do usuário em um jogo específico
 
 export async function buscarPalpitePorJogo(usuarioId: string, jogoId: string) {
   return prisma.palpite.findUnique({
@@ -121,7 +121,7 @@ export async function buscarPalpitePorJogo(usuarioId: string, jogoId: string) {
   })
 }
 
-// ─── Calcula e atualiza pontuação de todos os palpites de um jogo ─────────────
+// ─── Calcula e atualiza pontuação de todos os palpites de um jogo
 // Chamado pelo módulo de resultados quando admin insere o resultado real
 
 export async function calcularPontuacaoJogo(jogoId: string) {

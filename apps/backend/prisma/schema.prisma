@@ -52,14 +52,36 @@ model Usuario {
 // ─────────────────────────────────────────
 
 model Time {
-  id             String  @id @default(uuid())
-  nome           String  @unique
-  codigo         String?
-  grupo          String?
-  jogosCasa      Jogo[]  @relation("timeCasa")
-  jogosVisitante Jogo[]  @relation("timeVisitante")
+  id                          String              @id @default(uuid())
+  nome                        String              @unique
+  codigo                      String?
+  grupo                       String?
+  apiFootballId               Int?                @unique
+  jogosCasa                   Jogo[]              @relation("timeCasa")
+  jogosVisitante              Jogo[]              @relation("timeVisitante")
+  jogadores                   Jogador[]
+  palpitesEspeciaisComoTime   PalpiteEspecial[]
+  resultadosEspeciaisComoTime ResultadoEspecial[]
 
   @@map("times")
+}
+
+model Jogador {
+  id                                String   @id @default(uuid())
+  name                              String
+  apiFootballId                     Int      @unique
+  timeId                            String
+  position                          String?
+  numero                            Int?
+  fotoUrl                           String?
+  criadoEm                          DateTime @default(now())
+  time                              Time     @relation(fields: [timeId], references: [id])
+  palpitesEspeciaisComoArtilheiro   PalpiteEspecial[]   @relation("artilheiroPalpite")
+  resultadosEspeciaisComoArtilheiro ResultadoEspecial[] @relation("artilheiroResultado")
+
+  @@index([timeId])
+  @@index([name])
+  @@map("jogadores")
 }
 
 // ─────────────────────────────────────────
@@ -141,15 +163,32 @@ model PalpiteEspecial {
   id           String              @id @default(uuid())
   usuarioId    String
   tipo         TipoPalpiteEspecial
-  valor        String
+  timeId       String?             // CAMPEAO, VICE, TERCEIRO_LUGAR
+  jogadorId    String?             // ARTILHEIRO, MVP
+  totalEdicoes Int                 @default(0)
   pontos       Int                 @default(0)
   acertou      Boolean?
   criadoEm     DateTime            @default(now())
   atualizadoEm DateTime            @updatedAt
   usuario      Usuario             @relation(fields: [usuarioId], references: [id])
+  time         Time?               @relation(fields: [timeId], references: [id])
+  jogador      Jogador?            @relation("artilheiroPalpite", fields: [jogadorId], references: [id])
 
   @@unique([usuarioId, tipo])
   @@map("palpites_especiais")
+}
+
+model ResultadoEspecial {
+  id          String              @id @default(uuid())
+  tipo        TipoPalpiteEspecial @unique
+  timeId      String?
+  jogadorId   String?
+  inseridoEm  DateTime            @default(now())
+  inseridoPor String
+  time        Time?               @relation(fields: [timeId], references: [id])
+  jogador     Jogador?            @relation("artilheiroResultado", fields: [jogadorId], references: [id])
+
+  @@map("resultados_especiais")
 }
 
 // ─────────────────────────────────────────
@@ -363,6 +402,7 @@ enum TipoPalpiteEspecial {
   VICE
   TERCEIRO_LUGAR
   ARTILHEIRO
+  MVP
 }
 
 enum TipoComunidade {

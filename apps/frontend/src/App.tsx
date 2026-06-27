@@ -8,6 +8,7 @@ import { DashboardPage } from '@/pages/dashboard'
 import JogosPalpitesPage from './pages/jogos-palpites'
 import AdminPage from './pages/admin'
 import MeusPalpitesPage from './pages/meus-palpites'
+import PalpitesEspeciaisPage from './pages/palpites-especiais'
 import { useIsFetching, useIsMutating } from '@tanstack/react-query'
 import Comunidades from './pages/comunidades'
 import ComunidadeDetalhePage from './pages/comunidade-detalhe'
@@ -23,7 +24,7 @@ function GlobalLoading() {
 
   return (
     <div
-      className={`fixed top-0 left-0 z-[9999] h-0.5 bg-primary transition-all duration-300 ${
+      className={`fixed top-0 left-0 z-9999 h-0.5 bg-primary transition-all duration-300 ${
         isActive ? 'w-full opacity-100' : 'w-0 opacity-0'
       }`}
     />
@@ -50,6 +51,7 @@ export default function App() {
           >
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/meus-palpites" element={<MeusPalpitesPage />} />
+            <Route path="/palpites-especiais" element={<PalpitesEspeciaisPage />} />
             <Route path="/jogos" element={<JogosPalpitesPage/>} />
             <Route path='comunidades' element={<Comunidades/>}/>
             <Route path='comunidades/:comunidadeId' element={<ComunidadeDetalhePage/>}/>
