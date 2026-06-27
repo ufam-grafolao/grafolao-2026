@@ -2,7 +2,7 @@ const NOMES_PT: Record<string, string> = {
   'Mexico':               'México',
   'South Africa':         'África do Sul',
   'South Korea':          'Coreia do Sul',
-  'Czech Republic':       'República Tcheca',
+  'Czech Republic':       'Tchéquia',
   'Canada':               'Canadá',
   'Bosnia & Herzegovina': 'Bósnia e Herzegovina',
   'Qatar':                'Catar',

@@ -13,6 +13,9 @@ import { comunidadeRoutes } from './modules/comunidade/comunidade.routes.js'
 import { rankingRoutes } from './modules/ranking/ranking.routes.js'
 import { pushRoutes } from './modules/push/push.routes.js'
 import { iniciarScheduler } from './scheduler.js'
+import { palpitesEspeciaisRoutes } from './modules/palpites-especiais/palpites-especiais.routes.js'
+import { jogadoresRoutes } from './modules/jogadores/jogadores.routes.js'
+import { timesRoutes } from './modules/times/times.routes.js'
 
 const app = Fastify({
   logger: {
@@ -78,6 +81,9 @@ await app.register(adminRoutes)
 await app.register(comunidadeRoutes)
 await app.register(rankingRoutes)
 await app.register(pushRoutes)
+await app.register(palpitesEspeciaisRoutes)
+await app.register(jogadoresRoutes)
+await app.register(timesRoutes)
 
 // Health check
 app.get('/health', async () => {

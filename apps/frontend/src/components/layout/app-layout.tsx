@@ -1,4 +1,4 @@
-import { useLocation, Outlet, useNavigate, href } from 'react-router-dom'
+import { useLocation, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   ClipboardList,
@@ -14,6 +14,7 @@ import {
   BellOff,
   Loader2,
   HelpCircle,
+  Star
 } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/use-push-notifications'
 import {
@@ -39,6 +40,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ThemeToggle } from './theme-toggle'
+import { PalpitesEspeciaisBanner } from './palpites-especiais-banner'
 import { useAuth } from '@/hooks/use-auth'
 import ufamLogo from '@/assets/UFAM.png'
 
@@ -46,6 +48,7 @@ const navPrincipal = [
   { titulo: 'Painel', href: '/dashboard', icone: LayoutDashboard },
   { titulo: 'Jogos e Palpites', href: '/jogos', icone: ClipboardList },
   { titulo: 'Meus Palpites', href: '/meus-palpites', icone: ClipboardList },
+  { titulo: 'Palpites Especiais', href: '/palpites-especiais', icone: Star },
   { titulo: 'Ranking', href: '/ranking', icone: Trophy },
   { titulo: 'Grupos', href: '/comunidades', icone: Users },
   { titulo: 'Ajuda', href: '/ajuda', icone: HelpCircle },
@@ -204,6 +207,7 @@ export function AppLayout() {
             </div>
             <ThemeToggle />
           </header>
+          <PalpitesEspeciaisBanner />
           <main className="flex-1 p-6 overflow-auto">
             <Outlet />
           </main>
