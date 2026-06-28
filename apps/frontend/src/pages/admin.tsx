@@ -31,6 +31,8 @@ interface FormResultadoProps {
     resultado?: {
       golsCasa: number
       golsVisitante: number
+      penalti: boolean
+      vencedorPenalti: 'CASA' | 'VISITANTE' | null
       artilheirosCasa: string[]
       artilheirosVisitante: string[]
     } | null
@@ -44,10 +46,15 @@ function FormResultado({ jogo, onFechar }: FormResultadoProps) {
   const nomeCasa      = jogo.timeCasa?.nome      ?? jogo.timeCasaRef      ?? '?'
   const nomeVisitante = jogo.timeVisitante?.nome ?? jogo.timeVisitanteRef ?? '?'
 
-  const [golsCasa,      setGolsCasa]      = useState(String(jogo.resultado?.golsCasa      ?? ''))
-  const [golsVisitante, setGolsVisitante] = useState(String(jogo.resultado?.golsVisitante ?? ''))
-  const [artCasa,       setArtCasa]       = useState<string[]>(jogo.resultado?.artilheirosCasa      ?? [])
-  const [artVisitante,  setArtVisitante]  = useState<string[]>(jogo.resultado?.artilheirosVisitante ?? [])
+  const [golsCasa,        setGolsCasa]        = useState(String(jogo.resultado?.golsCasa      ?? ''))
+  const [golsVisitante,   setGolsVisitante]   = useState(String(jogo.resultado?.golsVisitante ?? ''))
+  const [vencedorPenalti, setVencedorPenalti] = useState<'CASA' | 'VISITANTE' | null>(jogo.resultado?.vencedorPenalti ?? null)
+  const [artCasa,         setArtCasa]         = useState<string[]>(jogo.resultado?.artilheirosCasa      ?? [])
+  const [artVisitante,    setArtVisitante]    = useState<string[]>(jogo.resultado?.artilheirosVisitante ?? [])
+
+  const isMataMata = !jogo.grupo
+  const isEmpate   = golsCasa !== '' && golsVisitante !== '' && golsCasa === golsVisitante
+  const precisaPenalti = isMataMata && isEmpate
   const [novoArtCasa,       setNovoArtCasa]       = useState('')
   const [novoArtVisitante,  setNovoArtVisitante]  = useState('')
 
@@ -76,11 +83,17 @@ function FormResultado({ jogo, onFechar }: FormResultadoProps) {
       return
     }
 
+    if (precisaPenalti && !vencedorPenalti) {
+      alert('Jogo de mata-mata com empate: selecione quem vence nos pênaltis.')
+      return
+    }
+
     inserir(
       {
         jogoId: jogo.id,
         golsCasa: casa,
         golsVisitante: visitante,
+        ...(precisaPenalti && vencedorPenalti ? { penalti: true, vencedorPenalti } : {}),
         artilheirosCasa: artCasa,
         artilheirosVisitante: artVisitante,
       },
@@ -133,6 +146,37 @@ function FormResultado({ jogo, onFechar }: FormResultadoProps) {
             />
           </div>
         </div>
+
+        {/* Pênaltis — só para mata-mata com empate */}
+        {precisaPenalti && (
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">Vencedor nos pênaltis</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setVencedorPenalti('CASA')}
+                className={`flex-1 text-sm py-2 rounded-md border transition-colors ${
+                  vencedorPenalti === 'CASA'
+                    ? 'border-primary bg-primary/10 text-primary font-semibold'
+                    : 'border-border text-muted-foreground hover:border-primary/40'
+                }`}
+              >
+                {nomeCasa}
+              </button>
+              <button
+                type="button"
+                onClick={() => setVencedorPenalti('VISITANTE')}
+                className={`flex-1 text-sm py-2 rounded-md border transition-colors ${
+                  vencedorPenalti === 'VISITANTE'
+                    ? 'border-primary bg-primary/10 text-primary font-semibold'
+                    : 'border-border text-muted-foreground hover:border-primary/40'
+                }`}
+              >
+                {nomeVisitante}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Artilheiros */}
         <div className="grid grid-cols-2 gap-4">

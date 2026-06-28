@@ -8,6 +8,8 @@ export interface Time {
 export interface Resultado {
   golsCasa: number
   golsVisitante: number
+  penalti: boolean
+  vencedorPenalti: 'CASA' | 'VISITANTE' | null
   artilheirosCasa: string[]
   artilheirosVisitante: string[]
 }

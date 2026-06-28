@@ -22,6 +22,8 @@ const jogoSelect = {
     select: {
       golsCasa: true,
       golsVisitante: true,
+      penalti: true,
+      vencedorPenalti: true,
       artilheirosCasa: true,
       artilheirosVisitante: true,
     },

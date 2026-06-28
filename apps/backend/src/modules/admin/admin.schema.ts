@@ -3,6 +3,8 @@
 export interface InserirResultadoBody {
   golsCasa: number
   golsVisitante: number
+  penalti?: boolean
+  vencedorPenalti?: 'CASA' | 'VISITANTE'
   artilheirosCasa?: string[]
   artilheirosVisitante?: string[]
   cartoesAmarelos?: number
@@ -22,8 +24,10 @@ export const inserirResultadoBodySchema = {
     type: 'object',
     required: ['golsCasa', 'golsVisitante'],
     properties: {
-      golsCasa:      { type: 'integer', minimum: 0, maximum: 20 },
-      golsVisitante: { type: 'integer', minimum: 0, maximum: 20 },
+      golsCasa:        { type: 'integer', minimum: 0, maximum: 20 },
+      golsVisitante:   { type: 'integer', minimum: 0, maximum: 20 },
+      penalti:         { type: 'boolean', default: false },
+      vencedorPenalti: { type: 'string', enum: ['CASA', 'VISITANTE'] },
       artilheirosCasa:      { type: 'array', items: { type: 'string' }, default: [] },
       artilheirosVisitante: { type: 'array', items: { type: 'string' }, default: [] },
       cartoesAmarelos:             { type: 'integer', minimum: 0, default: 0 },

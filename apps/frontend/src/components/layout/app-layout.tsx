@@ -14,7 +14,8 @@ import {
   BellOff,
   Loader2,
   HelpCircle,
-  Star
+  Star,
+  GitBranch,
 } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/use-push-notifications'
 import {
@@ -41,6 +42,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ThemeToggle } from './theme-toggle'
 import { PalpitesEspeciaisBanner } from './palpites-especiais-banner'
+import { MataMataModal } from './mata-mata-modal'
 import { useAuth } from '@/hooks/use-auth'
 import ufamLogo from '@/assets/UFAM.png'
 
@@ -49,6 +51,7 @@ const navPrincipal = [
   { titulo: 'Jogos e Palpites', href: '/jogos', icone: ClipboardList },
   { titulo: 'Meus Palpites', href: '/meus-palpites', icone: ClipboardList },
   { titulo: 'Palpites Especiais', href: '/palpites-especiais', icone: Star },
+  { titulo: 'Chaveamento', href: '/chaveamento', icone: GitBranch },
   { titulo: 'Ranking', href: '/ranking', icone: Trophy },
   { titulo: 'Grupos', href: '/comunidades', icone: Users },
   { titulo: 'Ajuda', href: '/ajuda', icone: HelpCircle },
@@ -208,6 +211,7 @@ export function AppLayout() {
             <ThemeToggle />
           </header>
           <PalpitesEspeciaisBanner />
+          <MataMataModal />
           <main className="flex-1 p-6 overflow-auto">
             <Outlet />
           </main>

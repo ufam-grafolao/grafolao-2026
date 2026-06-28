@@ -4,7 +4,8 @@ export interface PalpiteExistente {
   golsCasa: number
   golsVisitante: number
   pontos: number
-  status: 'PENDENTE' | 'ACERTO_PLACAR' | 'ACERTO_VENCEDOR' | 'ERRO'
+  vencedorPenalti: 'CASA' | 'VISITANTE' | null
+  status: 'PENDENTE' | 'ACERTO_PLACAR' | 'ACERTO_VENCEDOR' | 'ACERTO_BONUS' | 'ERRO'
   totalEdicoes: number
   jogo: {
     id: string
@@ -22,4 +23,5 @@ export interface PalpitarInput {
   jogoId: string
   golsCasa: number
   golsVisitante: number
+  vencedorPenalti?: 'CASA' | 'VISITANTE'
 }

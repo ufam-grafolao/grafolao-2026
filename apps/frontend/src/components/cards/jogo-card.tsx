@@ -1,11 +1,10 @@
 import { Jogo } from "@/types/jogo";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { getBandeira } from "@/lib/bandeiras";
 import { getRodada } from "@/lib/rodada";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import usePalpitar from "@/hooks/use-palpitar";
 import { Loader2 } from "lucide-react";
@@ -69,8 +68,16 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     // — estado local
     const [golsCasa, setGolsCasa] = useState<number | null>(null)
     const [golsVisitante, setGolsVisitante] = useState<number | null>(null)
+    const [vencedorPenalti, setVencedorPenalti] = useState<'CASA' | 'VISITANTE' | null>(null)
     const [palpiteConfirmado, setPalpiteConfirmado] = useState(false)
     const [palpiteLiberado, setPalpiteLiberado] = useState(false)
+
+    const isMataMata = !jogo.grupo
+    const isEmpate = golsCasa !== null && golsVisitante !== null && golsCasa === golsVisitante
+    const precisaPenalti = isMataMata && isEmpate
+
+    const isDrawResult = !jogo.grupo && !!jogo.resultado && jogo.resultado.golsCasa === jogo.resultado.golsVisitante
+    const maxPontos = jogo.grupo ? 10 : (isDrawResult ? 20 : 15)
 
     const liberarPalpite = () => {
         if (statusEfetivo !== 'AGENDADO') return
@@ -102,11 +109,17 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
             return;
         }
 
+        if (precisaPenalti && !vencedorPenalti) {
+            toast('warning', 'Selecione quem vence nos pênaltis.');
+            return;
+        }
+
         setPalpiteConfirmado(true);
         salvaPalpite({
             jogoId: jogo.id,
             golsCasa,
             golsVisitante,
+            ...(precisaPenalti && vencedorPenalti ? { vencedorPenalti } : {}),
         })
     }
 
@@ -114,6 +127,7 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
         if (palpiteExistente) {
             setGolsCasa(palpiteExistente.golsCasa)
             setGolsVisitante(palpiteExistente.golsVisitante)
+            setVencedorPenalti(palpiteExistente.vencedorPenalti ?? null)
             setPalpiteConfirmado(true)
             setPalpiteLiberado(true)
         }
@@ -124,7 +138,7 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
             <CardContent className="flex flex-col h-full w-full pt-1 pb-2 gap-0">
                 <div className="grid grid-cols-3 gap-2 mb-4">
                     <span className="text-xs text-muted-foreground">
-                        {jogo.grupo ?? jogo.fase}, {getRodada(jogo.fase, jogo.rodada)}
+                        {jogo.grupo ? `${jogo.grupo.replace('Group', 'Grupo')} · ${getRodada(jogo.fase, jogo.rodada)}` : getRodada(jogo.fase)}
                     </span>
                     <span className="text-center">
                         {formatarDataJogo(jogo.dataHora)}
@@ -148,6 +162,13 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                                 <span className="font-bold text-lg px-2 tabular-nums">
                                 {jogo.resultado.golsCasa} - {jogo.resultado.golsVisitante}
                                 </span>
+                                {isDrawResult && (
+                                  <span className="text-[11px] font-semibold leading-none">
+                                    {jogo.resultado.vencedorPenalti
+                                      ? `Pên: ${jogo.resultado.vencedorPenalti === 'CASA' ? nomeCasa : nomeVisitante}`
+                                      : 'Pênaltis'}
+                                  </span>
+                                )}
                                 <span className="text-xs text-muted-foreground mb-1">Encerrado</span>
                             </div>
                         )}
@@ -199,22 +220,35 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
 
                 <div className="mt-3">
                     {(statusEfetivo === 'ENCERRADO' || statusEfetivo === 'EM_ANDAMENTO') && palpiteExistente && (
-                        <div className={`mt-auto flex justify-center items-center text-xs text-center pt-2 border-t border-border font-medium ${
-                            statusEfetivo === 'ENCERRADO'
-                            ? palpiteExistente.status === 'ACERTO_PLACAR'
+                        <div className={`mt-auto flex justify-center flex-col gap-2 items-center text-xs text-center pt-2 border-t border-border font-medium ${
+                            statusEfetivo !== 'ENCERRADO'
+                                ? 'text-muted-foreground'
+                                : palpiteExistente.pontos === maxPontos
                                 ? 'text-green-600 dark:text-green-400'
-                                : palpiteExistente.status === 'ACERTO_VENCEDOR'
+                                : palpiteExistente.pontos > 0
                                 ? 'text-blue-600 dark:text-blue-400'
                                 : 'text-muted-foreground'
-                            : 'text-muted-foreground'
                         }`}>
-                            {statusEfetivo === 'ENCERRADO' && palpiteExistente.status === 'ACERTO_PLACAR' && '🎯 Placar exato! '}
-                            {statusEfetivo === 'ENCERRADO' && palpiteExistente.status === 'ACERTO_VENCEDOR' && '✅ Vencedor correto! '}
-                            {statusEfetivo === 'ENCERRADO' && palpiteExistente.status === 'ERRO' && '❌ '}
+                            {statusEfetivo === 'ENCERRADO' && (
+                              palpiteExistente.status === 'ACERTO_PLACAR'
+                                ? palpiteExistente.pontos === maxPontos
+                                  ? isDrawResult ? '🎯 Placar + pênaltis! ' : '🎯 Placar exato! '
+                                  : '🎯 Placar exato, errou pênaltis '
+                                : palpiteExistente.status === 'ACERTO_VENCEDOR'
+                                ? palpiteExistente.vencedorPenalti
+                                  ? '✅ Empate + pênaltis certo! '
+                                  : '✅ Resultado parcial correto! '
+                                : palpiteExistente.status === 'ACERTO_BONUS'
+                                ? '⭐ Empate correto, errou pênaltis '
+                                : '❌ Palpite errado! '
+                            )}
                             {statusEfetivo === 'EM_ANDAMENTO' && '⏳ '}
                             Seu palpite: {palpiteExistente.golsCasa} – {palpiteExistente.golsVisitante}
+                            {palpiteExistente.vencedorPenalti && (
+                              <> · {palpiteExistente.vencedorPenalti === 'CASA' ? nomeCasa : nomeVisitante} (pên.)</>
+                            )}
                             {statusEfetivo === 'ENCERRADO' && (
-                            <>{' -> '}<span className="font-semibold">{palpiteExistente.pontos} pts</span></>
+                            <div><span className="font-semibold">{palpiteExistente.pontos} / {maxPontos} pts</span></div>
                             )}
                         </div>
                     )}
@@ -228,6 +262,34 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
                     >
                         Palpitar
                     </Button>
+                    )}
+
+                    {palpiteLiberado && statusEfetivo === 'AGENDADO' && precisaPenalti && !palpiteConfirmado && (
+                        <div className="mt-3 flex flex-col gap-1">
+                            <p className="text-[11px] text-muted-foreground text-center">Quem avança nos pênaltis?</p>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setVencedorPenalti('CASA')}
+                                    className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${
+                                        vencedorPenalti === 'CASA'
+                                            ? 'border-primary bg-primary/10 text-primary font-semibold'
+                                            : 'border-border text-muted-foreground hover:border-primary/40'
+                                    }`}
+                                >
+                                    {nomeCasa}
+                                </button>
+                                <button
+                                    onClick={() => setVencedorPenalti('VISITANTE')}
+                                    className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${
+                                        vencedorPenalti === 'VISITANTE'
+                                            ? 'border-primary bg-primary/10 text-primary font-semibold'
+                                            : 'border-border text-muted-foreground hover:border-primary/40'
+                                    }`}
+                                >
+                                    {nomeVisitante}
+                                </button>
+                            </div>
+                        </div>
                     )}
 
                     {palpiteLiberado && statusEfetivo === 'AGENDADO' && (
