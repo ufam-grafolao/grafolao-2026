@@ -1,4 +1,5 @@
 import prisma from '../../db/prisma.js'
+import { StatusPalpite } from '@prisma/client'
 import type { CriarPalpiteBody } from './palpites.schema.js'
 
 // ─── Select padrão de palpite
@@ -85,6 +86,7 @@ export async function upsertPalpite(usuarioId: string, body: CriarPalpiteBody) {
     update: {
       golsCasa: body.golsCasa,
       golsVisitante: body.golsVisitante,
+      vencedorPenalti: body.vencedorPenalti ?? null,
       totalEdicoes: { increment: 1 },
     },
     create: {
@@ -92,6 +94,7 @@ export async function upsertPalpite(usuarioId: string, body: CriarPalpiteBody) {
       jogoId: body.jogoId,
       golsCasa: body.golsCasa,
       golsVisitante: body.golsVisitante,
+      vencedorPenalti: body.vencedorPenalti ?? null,
       totalEdicoes: 0,
     },
     select: palpiteSelect,
@@ -122,47 +125,35 @@ export async function buscarPalpitePorJogo(usuarioId: string, jogoId: string) {
 }
 
 // ─── Calcula e atualiza pontuação de todos os palpites de um jogo
-// Chamado pelo módulo de resultados quando admin insere o resultado real
 
 export async function calcularPontuacaoJogo(jogoId: string) {
-  const resultado = await prisma.resultado.findUnique({
-    where: { jogoId },
-    select: { golsCasa: true, golsVisitante: true },
+  const jogo = await prisma.jogo.findUnique({
+    where: { id: jogoId },
+    select: {
+      fase: true,
+      resultado: { select: { golsCasa: true, golsVisitante: true, penalti: true, vencedorPenalti: true } },
+    },
   })
 
-  if (!resultado) return
+  if (!jogo?.resultado) return
+
+  const { resultado, fase } = jogo
+  const isMataMata = fase !== 'GRUPOS'
 
   const palpites = await prisma.palpite.findMany({
     where: { jogoId },
-    select: { id: true, golsCasa: true, golsVisitante: true },
+    select: { id: true, golsCasa: true, golsVisitante: true, vencedorPenalti: true },
   })
 
-  const resultadoCasaVence  = resultado.golsCasa > resultado.golsVisitante
-  const resultadoEmpate     = resultado.golsCasa === resultado.golsVisitante
-  const resultadoVisitanteVence = resultado.golsCasa < resultado.golsVisitante
-
   for (const palpite of palpites) {
-    const acertouPlacar =
-      palpite.golsCasa      === resultado.golsCasa &&
-      palpite.golsVisitante === resultado.golsVisitante
+    let pontos: number
+    let status: StatusPalpite
 
-    const palpiteCasaVence      = palpite.golsCasa > palpite.golsVisitante
-    const palpiteEmpate         = palpite.golsCasa === palpite.golsVisitante
-    const palpiteVisitanteVence = palpite.golsCasa < palpite.golsVisitante
-
-    const acertouResultado =
-      (resultadoCasaVence      && palpiteCasaVence)      ||
-      (resultadoEmpate         && palpiteEmpate)         ||
-      (resultadoVisitanteVence && palpiteVisitanteVence)
-
-    const pontos = acertouPlacar ? 10 
-    : acertouResultado ? 5 + ganhouPontoExtra(palpite, resultado)
-    : 0
-    const status = acertouPlacar
-      ? 'ACERTO_PLACAR'
-      : acertouResultado
-      ? 'ACERTO_VENCEDOR'
-      : 'ERRO'
+    if (isMataMata) {
+      ({ pontos, status } = calcularMataMata(palpite, resultado))
+    } else {
+      ({ pontos, status } = calcularGrupos(palpite, resultado))
+    }
 
     await prisma.palpite.update({
       where: { id: palpite.id },
@@ -171,10 +162,82 @@ export async function calcularPontuacaoJogo(jogoId: string) {
   }
 }
 
-function ganhouPontoExtra(palpite: { golsCasa: number; golsVisitante: number }, resultado: { golsCasa: number; golsVisitante: number }): number {
-  return ((palpite.golsCasa === resultado.golsCasa) || // acertou gols casa
-    (palpite.golsVisitante === resultado.golsVisitante) || // acertou gols visitante
-    ((palpite.golsCasa - palpite.golsVisitante) === (resultado.golsCasa - resultado.golsVisitante)) ? // acertou saldo de gols
-    2 : 0
-  )
+// ─── Fase de grupos: 10 exato / 5+2 bônus vencedor / 0
+
+function calcularGrupos(
+  palpite: { golsCasa: number; golsVisitante: number },
+  resultado: { golsCasa: number; golsVisitante: number }
+): { pontos: number; status: StatusPalpite } {
+  const acertouPlacar =
+    palpite.golsCasa === resultado.golsCasa &&
+    palpite.golsVisitante === resultado.golsVisitante
+
+  const acertouResultado =
+    Math.sign(palpite.golsCasa - palpite.golsVisitante) ===
+    Math.sign(resultado.golsCasa - resultado.golsVisitante)
+
+  if (acertouPlacar) return { pontos: 10, status: 'ACERTO_PLACAR' }
+  if (acertouResultado) {
+    const bonus = ganhouPontoExtra(palpite, resultado)
+    return { pontos: 5 + bonus, status: 'ACERTO_VENCEDOR' }
+  }
+  return { pontos: 0, status: 'ERRO' }
+}
+
+function calcularMataMata(
+  palpite: { golsCasa: number; golsVisitante: number; vencedorPenalti: string | null },
+  resultado: { golsCasa: number; golsVisitante: number; penalti: boolean; vencedorPenalti: string | null }
+): { pontos: number; status: StatusPalpite } {
+  const acertouPlacar =
+    palpite.golsCasa === resultado.golsCasa &&
+    palpite.golsVisitante === resultado.golsVisitante
+
+  // Placar exato: +5 se acertou pênalti
+  if (acertouPlacar) {
+    if (resultado.penalti && palpite.vencedorPenalti === resultado.vencedorPenalti) {
+      return { pontos: 20, status: 'ACERTO_PLACAR' }
+    }
+    return { pontos: 15, status: 'ACERTO_PLACAR' }
+  }
+
+  const palpiteEmpate = palpite.golsCasa === palpite.golsVisitante
+
+  // Jogo decidido nos pênaltis
+  if (resultado.penalti) {
+    if (!palpiteEmpate) {
+      // Palpitou vencedor claro mas o jogo foi empate → errou o resultado
+      return { pontos: 0, status: 'ERRO' }
+    }
+    // Palpitou empate: bônus de saldo obrigatório (saldo = 0), +5 se acertou o vencedor
+    if (palpite.vencedorPenalti === resultado.vencedorPenalti) {
+      return { pontos: 15, status: 'ACERTO_VENCEDOR' }
+    }
+    return { pontos: 10, status: 'ACERTO_BONUS' }
+  }
+
+  // Jogo decidido sem pênaltis — acertou quem ganhou?
+  const vencedorReal = resultado.golsCasa > resultado.golsVisitante ? 'CASA' : 'VISITANTE'
+
+  const vencedorPalpite = palpite.golsCasa > palpite.golsVisitante
+    ? 'CASA'
+    : palpite.golsCasa < palpite.golsVisitante
+      ? 'VISITANTE'
+      : null // palpiteEmpate mas jogo foi decidido sem pênaltis → erro
+
+  if (vencedorPalpite !== vencedorReal) return { pontos: 0, status: 'ERRO' }
+
+  const bonus = ganhouPontoExtra(palpite, resultado)
+  if (bonus > 0) return { pontos: 10, status: 'ACERTO_VENCEDOR' }
+  return { pontos: 7, status: 'ACERTO_VENCEDOR' }
+}
+
+function ganhouPontoExtra(
+  palpite: { golsCasa: number; golsVisitante: number },
+  resultado: { golsCasa: number; golsVisitante: number }
+): number {
+  return (
+    palpite.golsCasa === resultado.golsCasa ||
+    palpite.golsVisitante === resultado.golsVisitante ||
+    (palpite.golsCasa - palpite.golsVisitante) === (resultado.golsCasa - resultado.golsVisitante)
+  ) ? 2 : 0
 }

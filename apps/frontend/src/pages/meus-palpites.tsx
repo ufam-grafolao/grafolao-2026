@@ -54,6 +54,7 @@ export default function MeusPalpitesPage() {
 
   const pendentes  = jogos?.filter(j => j.status === 'AGENDADO'  && palpites?.some(p => p.jogo.id === j.id))
   const encerrados = jogos?.filter(j => j.status === 'ENCERRADO' && palpites?.some(p => p.jogo.id === j.id))
+      .sort((a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime())
   const semPalpite = jogos?.filter(j => j.status === 'ENCERRADO' && !palpites?.some(p => p.jogo.id === j.id))
 
   return (

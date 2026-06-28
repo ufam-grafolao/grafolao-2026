@@ -25,6 +25,7 @@ import {
   Smartphone,
   MessageSquarePlus,
   Send,
+  GitBranch,
 } from 'lucide-react'
 
 function Secao({ icone, titulo, children }: {
@@ -66,6 +67,80 @@ function Passo({ n, children }: { n: number; children: React.ReactNode }) {
         {n}
       </span>
       <p>{children}</p>
+    </div>
+  )
+}
+
+function ArvoreMataMata() {
+  return (
+    <div className="text-xs space-y-2 pt-1">
+      <div className="font-medium text-foreground">Acertou o placar exato?</div>
+
+      {/* SIM branch */}
+      <div className="ml-2 pl-3 border-l-2 border-green-500/40 space-y-1.5">
+        <p className="text-green-600 dark:text-green-400 font-semibold">SIM (+15) — Partida foi para pênaltis?</p>
+        <div className="ml-2 pl-3 border-l border-muted space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Não →</span>
+            <Badge variant="secondary" className="text-[10px] h-4 px-1.5">15 pts</Badge>
+          </div>
+          <div className="space-y-1">
+            <p className="text-muted-foreground">Sim → Acertou quem passou?</p>
+            <div className="ml-2 pl-3 border-l border-muted space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Não →</span>
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">15 pts</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Sim (+5) →</span>
+                <Badge className="text-[10px] h-4 px-1.5 bg-green-600 hover:bg-green-700">20 pts</Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* NÃO branch */}
+      <div className="ml-2 pl-3 border-l-2 border-red-500/40 space-y-1.5">
+        <p className="text-red-500 dark:text-red-400 font-semibold">NÃO — Acertou resultado parcial? (V/E/D)</p>
+        <div className="ml-2 pl-3 border-l border-muted space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Não →</span>
+            <Badge variant="destructive" className="text-[10px] h-4 px-1.5">0 pts</Badge>
+          </div>
+          <div className="space-y-1">
+            <p className="text-muted-foreground">Sim (+7) — Partida foi para pênaltis?</p>
+            <div className="ml-2 pl-3 border-l border-muted space-y-1.5">
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Não → Bônus (saldo ou gols de um time)?</p>
+                <div className="ml-2 pl-3 border-l border-muted space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Não →</span>
+                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">7 pts</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Sim (+3) →</span>
+                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">10 pts</Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Sim (+3) — Acertou quem passou?</p>
+                <div className="ml-2 pl-3 border-l border-muted space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Não →</span>
+                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">10 pts</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Sim (+5) →</span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">15 pts</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -157,8 +232,42 @@ export default function AjudaPage() {
         </p>
       </div>
 
-      {/* Pontuação */}
-      <Secao icone={<Target className="h-4 w-4 text-primary" />} titulo="Sistema de Pontuação">
+
+      {/* Pontuação mata-mata */}
+      <Secao icone={<GitBranch className="h-4 w-4 text-primary" />} titulo="Pontuação — Mata-Mata">
+        <p>
+          Nos jogos de mata-mata, um time precisa avançar. O placar pode terminar empatado e ir para pênaltis,
+          o que muda a pontuação:
+        </p>
+
+        <ArvoreMataMata />
+
+        <div className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-3 py-2 text-xs">
+          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <span className="text-amber-800 dark:text-amber-300">
+            <strong>Atenção:</strong> se você palpitou vitória ou derrota mas o jogo foi para pênaltis, você{' '}
+            <strong>não pontua</strong> — pois o jogo terminou empatado no tempo regulamentar.
+          </span>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-1">
+          <p className="font-medium text-foreground">Resumo rápido</p>
+          <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs pt-1">
+            <span>🥇 Placar exato + pênaltis correto</span>           <span className="font-semibold text-foreground">20 pts</span>
+            <span>🎯 Placar exato (sem pên ou errou pên)</span>        <span className="font-semibold text-foreground">15 pts</span>
+            <span>✅ Empate correto + pênaltis correto</span>          <span className="font-semibold text-foreground">15 pts</span>
+            <span>✅ Vencedor certo + bônus (saldo/gols)</span>        <span className="font-semibold text-foreground">10 pts</span>
+            <span>⭐ Empate correto, errou pênaltis</span>             <span className="font-semibold text-foreground">10 pts</span>
+            <span>✅ Vencedor correto, sem bônus</span>                <span className="font-semibold text-foreground">7 pts</span>
+            <span>❌ Erro (inclui palpitar V/D e jogo ir a pên)</span> <span className="font-semibold text-foreground">0 pts</span>
+          </div>
+        </div>
+      </Secao>
+
+      {/* Pontuação grupos */}
+      <Secao icone={<Target className="h-4 w-4 text-primary" />} titulo="Pontuação — Fase de Grupos">
         <p>Cada palpite é avaliado após o resultado do jogo:</p>
 
         <div className="space-y-2.5 pt-1">

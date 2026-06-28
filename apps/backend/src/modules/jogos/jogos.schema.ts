@@ -67,8 +67,10 @@ const resultadoSchema = {
   type: 'object',
   nullable: true,
   properties: {
-    golsCasa:      { type: 'number' },
-    golsVisitante: { type: 'number' },
+    golsCasa:            { type: 'number' },
+    golsVisitante:       { type: 'number' },
+    penalti:             { type: 'boolean' },
+    vencedorPenalti:     { type: ['string', 'null'] },
     artilheirosCasa:      { type: 'array', items: { type: 'string' } },
     artilheirosVisitante: { type: 'array', items: { type: 'string' } },
   },
