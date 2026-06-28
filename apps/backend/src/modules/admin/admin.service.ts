@@ -4,6 +4,41 @@ import { enviarParaTodos } from '../push/push.service.js'
 import { getNomePt } from '../../shared/utils/nomes-times.js'
 import type { InserirResultadoBody, AtualizarStatusBody } from './admin.schema.js'
 
+// ─── Propaga vencedor para o próximo confronto do mata-mata ──────────────────
+
+async function propagarVencedor(
+  jogoId: string,
+  body: InserirResultadoBody,
+  penalti: boolean,
+  vencedorPenalti: string | null
+) {
+  const jogo = await prisma.jogo.findUnique({
+    where: { id: jogoId },
+    select: { num: true, timeCasaId: true, timeVisitanteId: true },
+  })
+
+  if (!jogo?.num) return
+
+  let vencedorId: string | null = null
+
+  if (penalti) {
+    vencedorId = vencedorPenalti === 'CASA' ? jogo.timeCasaId : jogo.timeVisitanteId
+  } else if (body.golsCasa > body.golsVisitante) {
+    vencedorId = jogo.timeCasaId
+  } else if (body.golsVisitante > body.golsCasa) {
+    vencedorId = jogo.timeVisitanteId
+  }
+
+  if (!vencedorId) return
+
+  const ref = `W${jogo.num}`
+
+  await Promise.all([
+    prisma.jogo.updateMany({ where: { timeCasaRef: ref },      data: { timeCasaId: vencedorId } }),
+    prisma.jogo.updateMany({ where: { timeVisitanteRef: ref }, data: { timeVisitanteId: vencedorId } }),
+  ])
+}
+
 // ─── Insere ou atualiza resultado de um jogo ──────────────────────────────────
 
 export async function inserirResultado(
@@ -25,11 +60,16 @@ export async function inserirResultado(
   }
 
   // Cria ou atualiza o resultado
+  const dadosPenalti = body.penalti && body.golsCasa === body.golsVisitante
+    ? { penalti: true, vencedorPenalti: body.vencedorPenalti ?? null }
+    : { penalti: false, vencedorPenalti: null }
+
   const resultado = await prisma.resultado.upsert({
     where: { jogoId },
     update: {
       golsCasa:      body.golsCasa,
       golsVisitante: body.golsVisitante,
+      ...dadosPenalti,
       artilheirosCasa:      body.artilheirosCasa      ?? [],
       artilheirosVisitante: body.artilheirosVisitante ?? [],
       cartoesAmarelos:             body.cartoesAmarelos             ?? 0,
@@ -42,6 +82,7 @@ export async function inserirResultado(
       jogoId,
       golsCasa:      body.golsCasa,
       golsVisitante: body.golsVisitante,
+      ...dadosPenalti,
       artilheirosCasa:      body.artilheirosCasa      ?? [],
       artilheirosVisitante: body.artilheirosVisitante ?? [],
       cartoesAmarelos:             body.cartoesAmarelos             ?? 0,
@@ -60,6 +101,9 @@ export async function inserirResultado(
 
   // Calcula pontuação de todos os palpites desse jogo
   await calcularPontuacaoJogo(jogoId)
+
+  // Propaga o vencedor para o próximo confronto do mata-mata
+  await propagarVencedor(jogoId, body, dadosPenalti.penalti, dadosPenalti.vencedorPenalti)
 
   // Notifica usuários sobre o resultado
   const jogoComTimes = await prisma.jogo.findUnique({

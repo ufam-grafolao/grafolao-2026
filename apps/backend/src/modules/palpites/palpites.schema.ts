@@ -1,6 +1,6 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export type StatusPalpite = 'PENDENTE' | 'ACERTO_PLACAR' | 'ACERTO_RESULTADO' | 'ERRO'
+export type StatusPalpite = 'PENDENTE' | 'ACERTO_PLACAR' | 'ACERTO_VENCEDOR' | 'ACERTO_BONUS' | 'ERRO'
 
 // ─── Body de criação/edição ───────────────────────────────────────────────────
 
@@ -8,6 +8,7 @@ export interface CriarPalpiteBody {
   jogoId: string
   golsCasa: number
   golsVisitante: number
+  vencedorPenalti?: 'CASA' | 'VISITANTE' // obrigatório em mata-mata com empate
 }
 
 // ─── Respostas ────────────────────────────────────────────────────────────────
@@ -41,9 +42,10 @@ export const criarPalpiteBodySchema = {
     type: 'object',
     required: ['jogoId', 'golsCasa', 'golsVisitante'],
     properties: {
-      jogoId:        { type: 'string' },
-      golsCasa:      { type: 'integer', minimum: 0, maximum: 20 },
-      golsVisitante: { type: 'integer', minimum: 0, maximum: 20 },
+      jogoId:          { type: 'string' },
+      golsCasa:        { type: 'integer', minimum: 0, maximum: 20 },
+      golsVisitante:   { type: 'integer', minimum: 0, maximum: 20 },
+      vencedorPenalti: { type: 'string', enum: ['CASA', 'VISITANTE'] },
     },
   },
 }
@@ -65,16 +67,17 @@ const jogoResumidoSchema = {
 const palpiteSchema = {
   type: 'object',
   properties: {
-    id:            { type: 'string' },
-    jogoId:        { type: 'string' },
-    golsCasa:      { type: 'integer' },
-    golsVisitante: { type: 'integer' },
-    pontos:        { type: 'integer' },
-    status:        { type: 'string' },
-    criadoEm:      { type: 'string', format: 'date-time' },
-    atualizadoEm:  { type: 'string', format: 'date-time' },
-    totalEdicoes:  { type: 'integer'},
-    jogo:          jogoResumidoSchema,
+    id:              { type: 'string' },
+    jogoId:          { type: 'string' },
+    golsCasa:        { type: 'integer' },
+    golsVisitante:   { type: 'integer' },
+    vencedorPenalti: { type: ['string', 'null'] },
+    pontos:          { type: 'integer' },
+    status:          { type: 'string' },
+    criadoEm:        { type: 'string', format: 'date-time' },
+    atualizadoEm:    { type: 'string', format: 'date-time' },
+    totalEdicoes:    { type: 'integer'},
+    jogo:            jogoResumidoSchema,
   },
 }
 

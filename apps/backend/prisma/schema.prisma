@@ -120,6 +120,8 @@ model Resultado {
   jogoId                      String    @unique
   golsCasa                    Int
   golsVisitante               Int
+  penalti                     Boolean   @default(false)
+  vencedorPenalti             String?   // 'CASA' | 'VISITANTE'
   cartoesAmarelos             Int       @default(0)
   cartoesVermelhosIndiretos   Int       @default(0)
   cartoesVermelhosDiretos     Int       @default(0)
@@ -139,17 +141,18 @@ model Resultado {
 // ─────────────────────────────────────────
 
 model Palpite {
-  id            String        @id @default(uuid())
-  usuarioId     String
-  jogoId        String
-  resultadoId   String?
-  golsCasa      Int
-  golsVisitante Int
-  pontos        Int           @default(0)
-  status        StatusPalpite @default(PENDENTE)
-  criadoEm      DateTime      @default(now())
-  atualizadoEm  DateTime      @updatedAt
-  totalEdicoes  Int           @default(0)
+  id              String        @id @default(uuid())
+  usuarioId       String
+  jogoId          String
+  resultadoId     String?
+  golsCasa        Int
+  golsVisitante   Int
+  vencedorPenalti String?       
+  pontos          Int           @default(0)
+  status          StatusPalpite @default(PENDENTE)
+  criadoEm        DateTime      @default(now())
+  atualizadoEm    DateTime      @updatedAt
+  totalEdicoes    Int           @default(0)
   confrontos    Confronto[]
   jogo          Jogo          @relation(fields: [jogoId], references: [id])
   resultado     Resultado?    @relation(fields: [resultadoId], references: [id])
@@ -163,8 +166,8 @@ model PalpiteEspecial {
   id           String              @id @default(uuid())
   usuarioId    String
   tipo         TipoPalpiteEspecial
-  timeId       String?             // CAMPEAO, VICE, TERCEIRO_LUGAR
-  jogadorId    String?             // ARTILHEIRO, MVP
+  timeId       String?             
+  jogadorId    String?             
   totalEdicoes Int                 @default(0)
   pontos       Int                 @default(0)
   acertou      Boolean?
@@ -394,6 +397,7 @@ enum StatusPalpite {
   PENDENTE
   ACERTO_PLACAR
   ACERTO_VENCEDOR
+  ACERTO_BONUS
   ERRO
 }
 

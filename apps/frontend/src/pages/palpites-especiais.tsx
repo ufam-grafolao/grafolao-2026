@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2, XCircle, Clock, AlertTriangle, Pencil } from 'lucide-react'
+import { CheckCircle2, XCircle, Clock, AlertTriangle, Pencil, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -90,27 +90,46 @@ function CardPalpite({ tipo, palpite, prazoEncerrado }: CardPalpiteProps) {
   const config = TIPOS_CONFIG[tipo]
   const salvar = useSalvarPalpiteEspecial()
 
-  const [timeSelecionado, setTimeSelecionado] = useState<TimeSelecionado | null>(
-    palpite.timeId ? { id: palpite.timeId, nome: palpite.timeNome ?? '', codigo: palpite.timeCodigo, grupo: null } : null
-  )
-  const [jogadorSelecionado, setJogadorSelecionado] = useState<JogadorBusca | null>(
-    palpite.jogadorId ? { id: palpite.jogadorId, name: palpite.jogadorNome ?? '', timeNome: palpite.jogadorTimeNome ?? '', timeCodigo: null, fotoUrl: palpite.jogadorFotoUrl } : null
-  )
-
-  const edicoesUsadas = palpite.totalEdicoes
   const temPalpite = !!(palpite.timeId || palpite.jogadorId)
-  const edicoesRestantes = temPalpite ? MAX_EDICOES - edicoesUsadas : MAX_EDICOES
+  const edicoesRestantes = temPalpite ? MAX_EDICOES - palpite.totalEdicoes : MAX_EDICOES
   const bloqueado = prazoEncerrado || (temPalpite && edicoesRestantes <= 0)
+
+  const palpiteTimeOriginal: TimeSelecionado | null = palpite.timeId
+    ? { id: palpite.timeId, nome: palpite.timeNome ?? '', codigo: palpite.timeCodigo, grupo: null }
+    : null
+  const palpiteJogadorOriginal: JogadorBusca | null = palpite.jogadorId
+    ? { id: palpite.jogadorId, name: palpite.jogadorNome ?? '', timeNome: palpite.jogadorTimeNome ?? '', timeCodigo: null, fotoUrl: palpite.jogadorFotoUrl }
+    : null
+
+  // Começa em modo edição só quando ainda não tem palpite
+  const [modoEdicao, setModoEdicao] = useState(!temPalpite)
+  const [timeSelecionado, setTimeSelecionado] = useState<TimeSelecionado | null>(palpiteTimeOriginal)
+  const [jogadorSelecionado, setJogadorSelecionado] = useState<JogadorBusca | null>(palpiteJogadorOriginal)
+
+  function entrarEdicao() {
+    setTimeSelecionado(null)
+    setJogadorSelecionado(null)
+    setModoEdicao(true)
+  }
+
+  function cancelarEdicao() {
+    setTimeSelecionado(palpiteTimeOriginal)
+    setJogadorSelecionado(palpiteJogadorOriginal)
+    setModoEdicao(false)
+  }
 
   function handleSalvar() {
     if (config.usaTime && !timeSelecionado) return
     if (!config.usaTime && !jogadorSelecionado) return
 
-    salvar.mutate({
-      tipo,
-      timeId: config.usaTime ? timeSelecionado!.id : undefined,
-      jogadorId: !config.usaTime ? jogadorSelecionado!.id : undefined,
-    })
+    salvar.mutate(
+      {
+        tipo,
+        timeId: config.usaTime ? timeSelecionado!.id : undefined,
+        jogadorId: !config.usaTime ? jogadorSelecionado!.id : undefined,
+      },
+      { onSuccess: () => setModoEdicao(false) }
+    )
   }
 
   const palpiteAtualNome = config.usaTime
@@ -211,8 +230,16 @@ function CardPalpite({ tipo, palpite, prazoEncerrado }: CardPalpiteProps) {
         </div>
       )}
 
-      {/* Seletor */}
-      {!bloqueado && (
+      {/* Botão alterar (fora do modo edição) */}
+      {!bloqueado && temPalpite && !modoEdicao && (
+        <Button variant="outline" size="sm" onClick={entrarEdicao} className="w-full">
+          <Pencil className="h-3.5 w-3.5 mr-1.5" />
+          Alterar palpite
+        </Button>
+      )}
+
+      {/* Seletor (modo edição) */}
+      {!bloqueado && modoEdicao && (
         <div className="flex flex-col gap-2 pt-1">
           {config.usaTime ? (
             <TimeCombobox
@@ -227,18 +254,31 @@ function CardPalpite({ tipo, palpite, prazoEncerrado }: CardPalpiteProps) {
               disabled={salvar.isPending}
             />
           )}
-          <Button
-            size="sm"
-            onClick={handleSalvar}
-            disabled={
-              salvar.isPending ||
-              (config.usaTime ? !timeSelecionado : !jogadorSelecionado)
-            }
-            className="w-full"
-          >
-            <Pencil className="h-3.5 w-3.5 mr-1.5" />
-            {temPalpite ? 'Atualizar palpite' : 'Salvar palpite'}
-          </Button>
+          <div className="flex gap-2">
+            {temPalpite && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={cancelarEdicao}
+                disabled={salvar.isPending}
+                className="shrink-0"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={handleSalvar}
+              disabled={
+                salvar.isPending ||
+                (config.usaTime ? !timeSelecionado : !jogadorSelecionado)
+              }
+              className="flex-1"
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+              {temPalpite ? 'Confirmar alteração' : 'Salvar palpite'}
+            </Button>
+          </div>
           {salvar.isError && (
             <p className="text-xs text-destructive text-center">
               {(salvar.error as { message?: string })?.message ?? 'Erro ao salvar. Tente novamente.'}

@@ -18,10 +18,19 @@ export const RODADAS: Record<string, string> = {
   'Matchday 17': 'Rodada 3',
 }
 
-export const getRodada = (fase: string, matchday?: string) => {
+export const FASES_PT: Record<string, string> = {
+  GRUPOS:          'Fase de Grupos',
+  ROUND_OF_32:     'Pré-oitavas',
+  ROUND_OF_16:     'Oitavas de final',
+  QUARTAS:         'Quartas de final',
+  SEMIFINAL:       'Semifinais',
+  TERCEIRO_LUGAR:  'Disputa de 3º lugar',
+  FINAL:           'Final',
+}
+
+export const getRodada = (fase: string, matchday?: string): string => {
   if (fase === 'GRUPOS' && matchday) {
-    const rodada = RODADAS[matchday]
-    if (rodada) return rodada
+    return RODADAS[matchday] ?? 'Rodada'
   }
-  return fase
+  return FASES_PT[fase] ?? fase
 }

@@ -11,3 +11,5 @@ build/
 **/.gitkeep
 .prisma/
 EOF
+
+scripts/
