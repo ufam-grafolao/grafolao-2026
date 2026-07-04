@@ -134,7 +134,7 @@ export default function JogoCard({ jogo, mostrarBotaoPalpite = false, palpitesEx
     }, [palpiteExistente?.id])
 
     return (
-        <Card className="max-w-[400px] min-h-[200px] hover:border-primary/50 transition-colors flex flex-col">
+        <Card id={`jogo-${jogo.id}`} className="max-w-100 min-h-50 hover:border-primary/50 transition-colors flex flex-col">
             <CardContent className="flex flex-col h-full w-full pt-1 pb-2 gap-0">
                 <div className="grid grid-cols-3 gap-2 mb-4">
                     <span className="text-xs text-muted-foreground">

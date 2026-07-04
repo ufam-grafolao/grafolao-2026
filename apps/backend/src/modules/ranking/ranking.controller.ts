@@ -9,9 +9,10 @@ export async function rankingGeralController(
 ) {
   try {
     const { id: usuarioId } = request.user as AuthJwtPayload
-    const page  = Number(request.query.page  ?? 1)
-    const limit = Number(request.query.limit ?? 20)
-    const resultado = await rankingGeral(page, limit, usuarioId)
+    const page   = Number(request.query.page  ?? 1)
+    const limit  = Number(request.query.limit ?? 20)
+    const sortBy = (request.query.sortBy ?? 'pontos') as 'pontos' | 'acertos'
+    const resultado = await rankingGeral(page, limit, usuarioId, sortBy)
     return reply.send(resultado)
   } catch (e) {
     request.log.error(e)

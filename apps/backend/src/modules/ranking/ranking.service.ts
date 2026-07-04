@@ -2,7 +2,7 @@ import prisma from '../../db/prisma.js'
 
 const LIMIT_PADRAO = 20
 
-export async function rankingGeral(page: number, limit: number = LIMIT_PADRAO, usuarioId?: string) {
+export async function rankingGeral(page: number, limit: number = LIMIT_PADRAO, usuarioId?: string, sortBy: 'pontos' | 'acertos' = 'pontos') {
   const [palpitesSomados, especialisSomados, acertosCompletos, acertosParciais, totalUsuarios] = await Promise.all([
     prisma.palpite.groupBy({
       by: ['usuarioId'],
@@ -50,7 +50,11 @@ export async function rankingGeral(page: number, limit: number = LIMIT_PADRAO, u
         acertosParciais:  mapParciais.get(u.id)  ?? 0,
       }
     })
-    .sort((a, b) => b.totalPontos - a.totalPontos || b.acertosCompletos - a.acertosCompletos)
+    .sort((a, b) =>
+      sortBy === 'acertos'
+        ? b.acertosCompletos - a.acertosCompletos || b.totalPontos - a.totalPontos
+        : b.totalPontos - a.totalPontos || b.acertosCompletos - a.acertosCompletos
+    )
     .map((u, i) => ({ ...u, posicao: i + 1 }))
 
   const totalPages = Math.ceil(totalUsuarios / limit)

@@ -1,6 +1,7 @@
 export type TipoComunidade = 'PUBLICA' | 'PRIVADA'
 export type RoleComunidade = 'DONO' | 'MODERADOR' | 'MEMBRO'
 export type StatusSolicitacao = 'PENDENTE' | 'ACEITA' | 'REJEITADA'
+export type Fase = 'GRUPOS' | 'ROUND_OF_32' | 'ROUND_OF_16' | 'QUARTAS' | 'SEMIFINAL' | 'TERCEIRO_LUGAR' | 'FINAL'
 
 export interface UsuarioResumo {
   id: string
@@ -17,6 +18,7 @@ export interface ComunidadeResponse {
   codigoCovite: string | null
   donoId: string
   ativo: boolean
+  rankingFaseInicio: Fase | null
   criadoEm: string
   atualizadoEm: string
 }
