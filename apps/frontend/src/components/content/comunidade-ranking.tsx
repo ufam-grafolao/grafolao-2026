@@ -1,8 +1,18 @@
-import { Crown, Shield } from 'lucide-react'
+import { Crown, Shield, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRankingComunidade } from '@/hooks/use-comunidades-ranking'
-import type { RankingMembro, RoleComunidade } from '@/types/comunidade'
+import type { Fase, RankingMembro, RoleComunidade } from '@/types/comunidade'
+
+const FASE_LABEL: Record<Fase, string> = {
+  GRUPOS:         'das fases de grupos',
+  ROUND_OF_32:    'das pré-oitavas',
+  ROUND_OF_16:    'das oitavas de final',
+  QUARTAS:        'das quartas de final',
+  SEMIFINAL:      'das semifinais',
+  TERCEIRO_LUGAR: 'da disputa de 3º lugar',
+  FINAL:          'da final',
+}
 
 function AvatarUsuario({ nome, avatarUrl }: { nome: string; avatarUrl: string | null }) {
   const [erro, setErro] = useState(false)
@@ -62,9 +72,10 @@ function RankingRow({ membro }: { membro: RankingMembro }) {
 
 interface Props {
   comunidadeId: string
+  rankingFaseInicio?: Fase | null
 }
 
-export default function RankingComunidade({ comunidadeId }: Props) {
+export default function RankingComunidade({ comunidadeId, rankingFaseInicio }: Props) {
   const { data: ranking, isLoading } = useRankingComunidade(comunidadeId)
 
   if (isLoading) {
@@ -87,6 +98,12 @@ export default function RankingComunidade({ comunidadeId }: Props) {
 
   return (
     <div className="mt-2">
+      {rankingFaseInicio && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 border border-border rounded-md px-3 py-2 mb-3">
+          <RotateCcw className="h-3 w-3 shrink-0" />
+          <span>Pontuação contada a partir <strong className="text-foreground">{FASE_LABEL[rankingFaseInicio]}</strong></span>
+        </div>
+      )}
       {ranking.map(m => (
         <RankingRow key={m.usuarioId} membro={m} />
       ))}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import JogoCard from "@/components/cards/jogo-card"
 import JogoCardLote, { type RascunhoLote } from "@/components/cards/jogo-card-lote"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -10,6 +10,7 @@ import { useMeusPalpites } from "@/hooks/use-palpites-meus"
 import { usePalpitarLote } from "@/hooks/use-palpitar-lote"
 import type { Jogo } from "@/types/jogo"
 import { Clock, Layers, X, Loader2, CheckCheck } from "lucide-react"
+import { useSearchParams } from "react-router-dom"
 
 type PalpitesData = ReturnType<typeof useMeusPalpites>["data"]
 
@@ -248,12 +249,24 @@ export default function JogosPalpitesPage() {
   const { data: meusPalpites, isLoading: loadingPalpites } = useMeusPalpites()
   const { salvarLote } = usePalpitarLote()
 
+  const [searchParams] = useSearchParams()
+  const jogoIdParam = searchParams.get('jogoId')
+  const tabParam    = searchParams.get('tab')
+
   const [modoLote, setModoLote] = useState(false)
   const [rascunhos, setRascunhos] = useState<Record<string, RascunhoLote>>({})
   const [salvando, setSalvando] = useState(false)
   const [progresso, setProgresso] = useState<{ concluidos: number; total: number } | null>(null)
-  const [tabAtiva, setTabAtiva] = useState('hoje')
+  const [tabAtiva, setTabAtiva] = useState(tabParam ?? 'hoje')
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Deep-link: scroll to specific game after data loads
+  useEffect(() => {
+    if (!jogoIdParam || !jogos) return
+    const el = document.getElementById(`jogo-${jogoIdParam}`)
+    if (!el) return
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+  }, [jogoIdParam, jogos])
 
   function handleChange(jogoId: string, campo: "golsCasa" | "golsVisitante", valor: number | null) {
     setRascunhos((prev) => ({

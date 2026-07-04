@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRankingGeral } from '@/hooks/use-ranking-geral'
 import { useAuth } from '@/hooks/use-auth'
 import type { EntradaRanking } from '@/types/ranking'
@@ -30,7 +31,7 @@ function AvatarUsuario({ nome, avatarUrl, className }: { nome: string; avatarUrl
   )
 }
 
-function RankingRow({ entrada, destaque = false }: { entrada: EntradaRanking; destaque?: boolean }) {
+function RankingRow({ entrada, destaque = false, sortBy = 'pontos' }: { entrada: EntradaRanking; destaque?: boolean; sortBy?: 'pontos' | 'acertos' }) {
   return (
     <div
       className={`flex items-center gap-3 py-2.5 border-b border-border last:border-0 ${
@@ -57,7 +58,14 @@ function RankingRow({ entrada, destaque = false }: { entrada: EntradaRanking; de
         </span>
       </div>
 
-      <span className="text-sm font-bold shrink-0">{entrada.totalPontos} pts</span>
+      {sortBy === 'acertos' ? (
+        <div className="text-right shrink-0">
+          <span className="text-sm font-bold">{entrada.acertosCompletos}</span>
+          <span className="text-xs text-muted-foreground ml-0.5">✓</span>
+        </div>
+      ) : (
+        <span className="text-sm font-bold shrink-0">{entrada.totalPontos} pts</span>
+      )}
     </div>
   )
 }
@@ -145,28 +153,17 @@ function PaginacaoNumerada({
   )
 }
 
-export default function RankingPage() {
+function RankingLista({ sortBy }: { sortBy: 'pontos' | 'acertos' }) {
   const [page, setPage] = useState(1)
   const { usuario } = useAuth()
-  const { data, isLoading } = useRankingGeral(page, LIMIT)
+  const { data, isLoading } = useRankingGeral(page, LIMIT, sortBy)
 
   const totalPages = data?.totalPages ?? 1
-  const total = data?.total ?? 0
   const minhaEntrada = data?.minhaEntrada ?? null
   const meuId = usuario?.id ?? ''
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Ranking Geral</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Classificação de todos os participantes do bolão.
-          {!isLoading && total > 0 && (
-            <span className="ml-1">{total} participantes no total.</span>
-          )}
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-4">
       {/* Minha posição */}
       {isLoading ? (
         <Skeleton className="h-16 rounded-lg" />
@@ -181,7 +178,11 @@ export default function RankingPage() {
               {minhaEntrada.acertosCompletos} completos · {minhaEntrada.acertosParciais} parciais
             </p>
           </div>
-          <span className="text-lg font-bold text-primary shrink-0">{minhaEntrada.totalPontos} pts</span>
+          {sortBy === 'acertos' ? (
+            <span className="text-lg font-bold text-primary shrink-0">{minhaEntrada.acertosCompletos} ✓</span>
+          ) : (
+            <span className="text-lg font-bold text-primary shrink-0">{minhaEntrada.totalPontos} pts</span>
+          )}
         </div>
       ) : null}
 
@@ -199,6 +200,7 @@ export default function RankingPage() {
               key={entrada.usuarioId}
               entrada={entrada}
               destaque={entrada.usuarioId === meuId}
+              sortBy={sortBy}
             />
           ))
         )}
@@ -214,6 +216,34 @@ export default function RankingPage() {
           />
         </div>
       )}
+    </div>
+  )
+}
+
+export default function RankingPage() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Ranking Geral</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Classificação de todos os participantes do bolão.
+        </p>
+      </div>
+
+      <Tabs defaultValue="pontos">
+        <TabsList variant="line">
+          <TabsTrigger value="pontos">Por pontos</TabsTrigger>
+          <TabsTrigger value="acertos">Por acertos completos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pontos" className="mt-4">
+          <RankingLista sortBy="pontos" />
+        </TabsContent>
+
+        <TabsContent value="acertos" className="mt-4">
+          <RankingLista sortBy="acertos" />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
