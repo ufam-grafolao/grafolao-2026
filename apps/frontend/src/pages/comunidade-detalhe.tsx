@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
-import { ArrowLeft, Copy, Trash2, Loader2, Pencil } from 'lucide-react'
+import { ArrowLeft, Copy, Trash2, Loader2, Pencil, RotateCcw } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -15,9 +16,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import type { Fase } from '@/types/comunidade'
 import { useComunidadeDetalhes } from '@/hooks/use-comunidades-detalhes'
 import { useSolicitacoes } from '@/hooks/use-comunidades-solicitacoes'
-import { useAlterarTipoComunidade, useAtualizarComunidade, useDeletarComunidade, useEntrarComunidade } from '@/hooks/use-comunidades-mutations'
+import { useAlterarTipoComunidade, useAtualizarComunidade, useDeletarComunidade, useDefinirRankingFase, useEntrarComunidade } from '@/hooks/use-comunidades-mutations'
 import RankingComunidade from '@/components/content/comunidade-ranking'
 import MembrosComunidade from '@/components/content/comunidade-membros'
 import SolicitacoesComunidade from '@/components/content/comunidade-solicitacoes'
@@ -39,6 +41,7 @@ export default function ComunidadeDetalhePage() {
   const { mutate: alterarTipo, isPending: alterando } = useAlterarTipoComunidade(comunidade?.id ?? '')
   const { mutate: entrar, isPending: entrando } = useEntrarComunidade()
   const { mutate: atualizar, isPending: atualizando } = useAtualizarComunidade(comunidade?.id ?? '')
+  const { mutate: definirFase, isPending: definindoFase } = useDefinirRankingFase(comunidade?.id ?? '')
 
   const [editAberto, setEditAberto] = useState(false)
   const [editNome, setEditNome] = useState('')
@@ -164,6 +167,36 @@ export default function ComunidadeDetalhePage() {
                   <Pencil className="h-4 w-4 mr-2" />
                   Editar nome / descrição
                 </Button>
+
+                <div className="flex w-full flex-col gap-1.5">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <RotateCcw className="h-3 w-3" />
+                    Zerar ranking a partir de
+                  </Label>
+                  <Select
+                    value={comunidade.rankingFaseInicio ?? 'NENHUMA'}
+                    onValueChange={v => definirFase(v === 'NENHUMA' ? null : v as Fase)}
+                    disabled={definindoFase}
+                  >
+                    <SelectTrigger className="w-full cursor-pointer h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-sidebar">
+                      <SelectItem value="NENHUMA">Sem filtro</SelectItem>
+                      <SelectItem value="GRUPOS">Fase de grupos</SelectItem>
+                      <SelectItem value="ROUND_OF_32">Pré-oitavas</SelectItem>
+                      <SelectItem value="ROUND_OF_16">Oitavas de final</SelectItem>
+                      <SelectItem value="QUARTAS">Quartas de final</SelectItem>
+                      <SelectItem value="SEMIFINAL">Semifinais</SelectItem>
+                      <SelectItem value="TERCEIRO_LUGAR">Disputa de 3º lugar</SelectItem>
+                      <SelectItem value="FINAL">Final</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground leading-tight">
+                    O ranking do grupo contará apenas pontos de jogos a partir da fase selecionada. O ranking geral não é afetado.
+                  </p>
+                </div>
+
                 <Button variant="destructive" size="sm" className="w-full" disabled={deletando} onClick={handleDeletar}>
                   {deletando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -241,7 +274,7 @@ export default function ComunidadeDetalhePage() {
               </TabsContent>
 
               <TabsContent value="ranking" className="mt-4">
-                <RankingComunidade comunidadeId={comunidade.id} />
+                <RankingComunidade comunidadeId={comunidade.id} rankingFaseInicio={comunidade.rankingFaseInicio} />
               </TabsContent>
 
               <TabsContent value="membros" className="mt-4">

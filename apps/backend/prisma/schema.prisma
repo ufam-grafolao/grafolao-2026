@@ -199,22 +199,22 @@ model ResultadoEspecial {
 // ─────────────────────────────────────────
 
 model Comunidade {
-  id           String              @id @default(uuid())
-  nome         String
-  descricao    String?
-  tipo         TipoComunidade      @default(PUBLICA)
-  avatarUrl    String?
-  codigoCovite String?             @unique
-  donoId       String
-  ativo        Boolean             @default(true)
-  criadoEm     DateTime            @default(now())
-  atualizadoEm DateTime            @updatedAt
-  convites     ConviteComunidade[]
-  membros      MembroComunidade[]
+  id                String              @id @default(uuid())
+  nome              String
+  descricao         String?
+  tipo              TipoComunidade      @default(PUBLICA)
+  avatarUrl         String?
+  codigoCovite      String?             @unique
+  donoId            String
+  ativo             Boolean             @default(true)
+  rankingFaseInicio Fase?
+  criadoEm          DateTime            @default(now())
+  atualizadoEm      DateTime            @updatedAt
+  convites          ConviteComunidade[]
+  membros           MembroComunidade[]
   solicitacoesComunidade SolicitacaoComunidade[]
-  
-  // Mapeamento virtual do dono
-  dono         Usuario             @relation("donoComunidade", fields: [donoId], references: [id])
+
+  dono              Usuario             @relation("donoComunidade", fields: [donoId], references: [id])
 
   @@map("comunidades")
 }

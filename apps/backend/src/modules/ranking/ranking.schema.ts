@@ -1,6 +1,7 @@
 export interface RankingQuerystring {
   page?: number
   limit?: number
+  sortBy?: 'pontos' | 'acertos'
 }
 
 const entradaRankingSchema = {
@@ -35,8 +36,9 @@ export const rankingGeralQuerySchema = {
   querystring: {
     type: 'object',
     properties: {
-      page:  { type: 'number', minimum: 1, default: 1 },
-      limit: { type: 'number', minimum: 1, maximum: 100, default: 20 },
+      page:   { type: 'number', minimum: 1, default: 1 },
+      limit:  { type: 'number', minimum: 1, maximum: 100, default: 20 },
+      sortBy: { type: 'string', enum: ['pontos', 'acertos'], default: 'pontos' },
     },
   },
 }

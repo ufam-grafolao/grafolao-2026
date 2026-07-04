@@ -1,5 +1,6 @@
 import prisma from '../../db/prisma.js'
 import { randomBytes } from 'crypto'
+import { Fase } from '@prisma/client'
 import type {
   CriarComunidadeBody,
   EntrarComunidadeBody,
@@ -8,6 +9,21 @@ import type {
 } from './comunidade.schema.js'
 
 const LIMITE_COMUNIDADES = 3
+
+const ORDEM_FASES: Fase[] = [
+  Fase.GRUPOS,
+  Fase.ROUND_OF_32,
+  Fase.ROUND_OF_16,
+  Fase.QUARTAS,
+  Fase.SEMIFINAL,
+  Fase.TERCEIRO_LUGAR,
+  Fase.FINAL,
+]
+
+function fasesAPartirDe(fase: Fase): Fase[] {
+  const idx = ORDEM_FASES.indexOf(fase)
+  return idx === -1 ? ORDEM_FASES : ORDEM_FASES.slice(idx)
+}
 
 export async function criarComunidade(usuarioId: string, data: CriarComunidadeBody) {
   const usuario = await prisma.usuario.findUniqueOrThrow({
@@ -171,6 +187,15 @@ export async function deletarComunidade(usuarioId: string, comunidadeId: string)
 }
 
 export async function rankingComunidade(comunidadeId: string) {
+  const comunidade = await prisma.comunidade.findUniqueOrThrow({
+    where: { id: comunidadeId },
+    select: { rankingFaseInicio: true },
+  })
+
+  const fasesValidas = comunidade.rankingFaseInicio
+    ? fasesAPartirDe(comunidade.rankingFaseInicio)
+    : null
+
   const membros = await prisma.membroComunidade.findMany({
     where: { comunidadeId },
     include: {
@@ -179,7 +204,10 @@ export async function rankingComunidade(comunidadeId: string) {
           id: true,
           nome: true,
           avatarUrl: true,
-          palpites: { select: { pontos: true } },
+          palpites: {
+            select: { pontos: true },
+            where: fasesValidas ? { jogo: { fase: { in: fasesValidas } } } : undefined,
+          },
           palpitesEspeciais: { select: { pontos: true } },
         },
       },
@@ -202,6 +230,25 @@ export async function rankingComunidade(comunidadeId: string) {
     })
     .sort((a, b) => b.totalPontos - a.totalPontos)
     .map((m, i) => ({ ...m, posicao: i + 1 }))
+}
+
+export async function definirRankingFase(
+  usuarioId: string,
+  comunidadeId: string,
+  fase: Fase | null,
+) {
+  const comunidade = await prisma.comunidade.findUniqueOrThrow({
+    where: { id: comunidadeId },
+    select: { donoId: true },
+  })
+
+  if (comunidade.donoId !== usuarioId) throw new Error('SEM_PERMISSAO')
+
+  return prisma.comunidade.update({
+    where: { id: comunidadeId },
+    data: { rankingFaseInicio: fase },
+    select: { id: true, rankingFaseInicio: true },
+  })
 }
 
 export async function buscarComunidades(query: string, usuarioId: string) {

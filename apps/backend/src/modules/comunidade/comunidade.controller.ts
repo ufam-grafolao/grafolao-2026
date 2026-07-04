@@ -16,6 +16,7 @@ import {
   sairComunidade,
   atualizarComunidade,
   palpitesComunidade,
+  definirRankingFase,
 } from './comunidades.service.js'
 import type {
   AlterarTipoComunidadeBody,
@@ -24,6 +25,7 @@ import type {
   EntrarComunidadeBody,
   PromoverMembroBody,
 } from './comunidade.schema.js'
+import { Fase } from '@prisma/client'
 import type { JwtPayload as AuthJwtPayload } from '../auth/auth.schema.js'
 
 const errosHTTP: Record<string, number> = {
@@ -262,6 +264,19 @@ export async function sairComunidadeController(
     const { id: usuarioId } = request.user as AuthJwtPayload
     await sairComunidade(usuarioId, request.params.comunidadeId)
     return reply.status(204).send()
+  } catch (e) {
+    return handleError(e, reply)
+  }
+}
+
+export async function definirRankingFaseController(
+  request: FastifyRequest<{ Params: { comunidadeId: string }; Body: { fase: Fase | null } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id: usuarioId } = request.user as AuthJwtPayload
+    const resultado = await definirRankingFase(usuarioId, request.params.comunidadeId, request.body.fase)
+    return reply.send(resultado)
   } catch (e) {
     return handleError(e, reply)
   }

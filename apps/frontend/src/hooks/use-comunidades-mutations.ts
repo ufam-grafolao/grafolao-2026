@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client'
 import type {
   CriarComunidadeBody,
   EntrarComunidadeBody,
+  Fase,
   PromoverMembroBody,
   TipoComunidade,
 } from '@/types/comunidade'
@@ -205,6 +206,27 @@ export function useAtualizarComunidade(comunidadeId: string) {
     onError: (error: Error) => {
       const msgs: Record<string, string> = { SEM_PERMISSAO: 'Apenas o dono pode editar a comunidade.' }
       toast('error', 'Erro ao atualizar', msgs[error.message] ?? error.message)
+    },
+  })
+}
+
+// ─── Definir fase inicial do ranking
+
+export function useDefinirRankingFase(comunidadeId: string) {
+  const qc = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: (fase: Fase | null) =>
+      apiFetch(`/comunidades/${comunidadeId}/ranking-fase`, { method: 'PATCH', body: JSON.stringify({ fase }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'detalhes'] })
+      qc.invalidateQueries({ queryKey: ['comunidades', comunidadeId, 'ranking'] })
+      toast('success', 'Fase inicial do ranking atualizada')
+    },
+    onError: (error: Error) => {
+      const msgs: Record<string, string> = { SEM_PERMISSAO: 'Apenas o dono pode alterar isso.' }
+      toast('error', 'Erro ao definir fase', msgs[error.message] ?? error.message)
     },
   })
 }

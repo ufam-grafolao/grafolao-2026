@@ -16,6 +16,7 @@ import {
   sairComunidadeController,
   atualizarComunidadeController,
   palpitesComunidadeController,
+  definirRankingFaseController,
 } from './comunidade.controller.js'
 import {
   criarComunidadeResponseSchema,
@@ -109,4 +110,8 @@ export async function comunidadeRoutes(app: FastifyInstance) {
       preHandler: [app.authenticate],
       schema: atualizarComunidadeBodySchema,
     }, atualizarComunidadeController as RouteHandlerMethod)
+
+  app.patch('/comunidades/:comunidadeId/ranking-fase', {
+    preHandler: [app.authenticate],
+  }, definirRankingFaseController as RouteHandlerMethod)
 }
