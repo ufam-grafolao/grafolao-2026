@@ -16,6 +16,7 @@ import { iniciarScheduler } from './scheduler.js'
 import { palpitesEspeciaisRoutes } from './modules/palpites-especiais/palpites-especiais.routes.js'
 import { jogadoresRoutes } from './modules/jogadores/jogadores.routes.js'
 import { timesRoutes } from './modules/times/times.routes.js'
+import { grafoConfrontosRoutes } from './modules/grafo-confrontos/grafo-confrontos.routes.js'
 
 const app = Fastify({
   logger: {
@@ -24,7 +25,6 @@ const app = Fastify({
   bodyLimit: 1048576,
 })
 
-// ─── Plugins ────────────────────────────────────────
 
 await app.register(fastifyCors, {
   origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
@@ -63,7 +63,6 @@ await app.register(fastifyOAuth2, {
   callbackUri: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3333/auth/google/callback',
 })
 
-// Decorator para autenticação nas rotas
 app.decorate('authenticate', async (request: any, reply: any) => {
   try {
     await request.jwtVerify()
@@ -84,13 +83,12 @@ await app.register(pushRoutes)
 await app.register(palpitesEspeciaisRoutes)
 await app.register(jogadoresRoutes)
 await app.register(timesRoutes)
+await app.register(grafoConfrontosRoutes)
 
-// Health check
 app.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
 })
 
-// ─── Start ──────────────────────────────────────────
 
 const PORT = Number(process.env.PORT ?? 3333)
 const HOST = process.env.HOST ?? '0.0.0.0'
