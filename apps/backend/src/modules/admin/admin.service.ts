@@ -3,6 +3,7 @@ import { calcularPontuacaoJogo } from '../palpites/palpites.service.js'
 import { enviarParaTodos } from '../push/push.service.js'
 import { getNomePt } from '../../shared/utils/nomes-times.js'
 import type { InserirResultadoBody, AtualizarStatusBody } from './admin.schema.js'
+import { construirConfrontosJogo } from '../grafo-confrontos/grafo-confrontos.service.js'
 
 // ─── Propaga vencedor para o próximo confronto do mata-mata ──────────────────
 
@@ -93,14 +94,13 @@ export async function inserirResultado(
     },
   })
 
-  // Marca o jogo como encerrado
   await prisma.jogo.update({
     where: { id: jogoId },
     data: { status: 'ENCERRADO' },
   })
 
-  // Calcula pontuação de todos os palpites desse jogo
   await calcularPontuacaoJogo(jogoId)
+  await construirConfrontosJogo(jogoId)
 
   // Propaga o vencedor para o próximo confronto do mata-mata
   await propagarVencedor(jogoId, body, dadosPenalti.penalti, dadosPenalti.vencedorPenalti)
