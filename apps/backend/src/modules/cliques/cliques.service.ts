@@ -84,6 +84,75 @@ async function obterBipartido(acertos: boolean): Promise<Bipartido> {
   );
 }
 
+class Particao {
+  constructor(
+    public readonly ids: Set<string>,
+    public readonly vizinhos: Map<string, Set<string>>,
+    public readonly R: Set<string>,
+    public readonly P: Set<string>,
+    public readonly X: Set<string>,
+  ) {
+    this.ids = ids;
+    this.vizinhos = vizinhos;
+    this.R = R;
+    this.P = P;
+    this.X = X;
+  }
+
+  /**
+   * @brief Cria outra partição tirando `u` (desta partição) do conjunto de candidatos `P` e adicionando-o ao conjunto maximal `R`.
+   */
+  semCandidato(u: string): Particao {
+    const R = new Set(this.R).add(u);
+    const P = new Set(this.P);
+    P.delete(u);
+
+    return new Particao(
+      this.ids,
+      this.vizinhos,
+      R,
+      P,
+      new Set(this.X)
+    );
+  }
+
+  /**
+   * @brief Cria outra partição contendo apenas os vizinhos de `v` (de outra partição) do conjunto de candidatos `P` e no conjunto de já processados `X`
+   */
+  apenasVizinhosDe(v: string): Particao {
+    return new Particao(
+      this.ids,
+      this.vizinhos,
+      new Set(this.R),
+      new Set([...this.P].filter(u => this.vizinhos.get(u)!.has(v))),
+      new Set([...this.X].filter(u => this.vizinhos.get(u)!.has(v)))
+    );
+  }
+}
+
+function testeMaximalidade(
+  U: Particao,
+  V: Particao,
+  cliques: [string[], string[]][]
+) {
+  if (
+    (U.P.size === 0 && U.R.size === 0) ||
+    (V.P.size === 0 && V.R.size === 0) ||
+    (U.P.size === 0 && V.X.size !== 0) ||
+    (V.P.size === 0 && U.X.size !== 0)
+  ) return true;
+  
+  if (
+    (U.P.size === 0 && U.X.size === 0) ||
+    (V.P.size === 0 && V.X.size === 0)
+  ) {
+    cliques.push([[...U.R, ...U.P], [...V.R, ...V.P]]);
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * @brief Executa o algoritmo Bipartite Bron-Kerbosch, com uma mínima adaptação para evitar a enumeração de bicliques com apenas 1 vértice em um dos conjuntos.
  * @param G Grafo bipartido (usuarios x jogos)
@@ -93,73 +162,55 @@ async function obterBipartido(acertos: boolean): Promise<Bipartido> {
  * @param cliques Lista de bicliques maximais encontrados
  */
 function bronKerboschBipartido(
-  G: Bipartido,
-  [Ru, Rj]: [Set<string>, Set<string>],
-  [Pu, Pj]: [Set<string>, Set<string>],
-  [Xu, Xj]: [Set<string>, Set<string>],
+  U: Particao,
+  V: Particao,
   cliques: [string[], string[]][]
 ) {
-  if (
-    (Pu.size === 0 || Pj.size === 0) && Xu.size === 0 && Xj.size === 0
-    && (Ru.size + Pu.size) > 0 && (Rj.size + Pj.size) > 0 // Remove bicliques com apenas 1 participante ou apenas 1 jogo
-  ) {
-    // Adicionar R U P como um biclique maximal
-    cliques.push([[...Ru, ...Pu], [...Rj, ...Pj]]);
+  // Adicionar R U P como um biclique maximal
+  if (testeMaximalidade(U, V, cliques)) {
     return;
   }
 
-  if ((Pu.size === 0 && Xj.size !== 0) || (Pj.size === 0 && Xu.size !== 0))
+  if ((U.P.size === 0 && V.X.size !== 0) || (V.P.size === 0 && U.X.size !== 0))
     return;
 
   // Escolher um pivô para reduzir recursões
-  const pivo = (Pu.values().next().value ?? Pj.values().next().value) as string;
+  const pivo = (U.P.values().next().value ?? V.P.values().next().value) as string;
 
   let PFiltrado: string[] | undefined;
 
   // Iterar apenas pelos não-vizinhos de `pivo` nos subconjuntos correspondentes
-  if (G.conjuntoUsuarios.has(pivo)) {
-    PFiltrado = [...Pj].filter(j => !G.aresta(pivo, j));
+  if (U.ids.has(pivo)) {
+    PFiltrado = [...V.P].filter(j => !U.vizinhos.get(pivo)!.has(j));
   } else {
-    PFiltrado = [...Pu].filter(u => !G.aresta(u, pivo));
+    PFiltrado = [...U.P].filter(u => !V.vizinhos.get(pivo)!.has(u));
   }
 
   // Caso pivo ∈ P
-  if (Pu.has(pivo) || Pj.has(pivo))
-    PFiltrado.push(pivo);
+  // if (U.P.has(pivo) || V.P.has(pivo))
+  PFiltrado.push(pivo);
 
   for (const v of PFiltrado) {
-    if (G.conjuntoUsuarios.has(v)) {
+    if (U.ids.has(v)) {
       // v é um usuário
-      const newRu = new Set(Ru).add(v);
-      const newPu = new Set(Pu);
-      newPu.delete(v);
-
       bronKerboschBipartido(
-        G,
-        [newRu, Rj],
-        [newPu, new Set([...Pj].filter(j => G.aresta(v, j)))],
-        [new Set(Xu), new Set([...Xj].filter(j => G.aresta(v, j)))],
+        U.semCandidato(v),
+        V.apenasVizinhosDe(v),
         cliques
       );
 
-      Pu.delete(v);
-      Xu.add(v);
+      U.P.delete(v);
+      U.X.add(v);
     } else {
       // v é um jogo
-      const newRj = new Set(Rj).add(v);
-      const newPj = new Set(Pj);
-      newPj.delete(v);
-
       bronKerboschBipartido(
-        G,
-        [Ru, newRj],
-        [new Set([...Pu].filter(u => G.aresta(u, v))), newPj],
-        [new Set([...Xu].filter(u => G.aresta(u, v))), new Set(Xj)],
+        U.apenasVizinhosDe(v),
+        V.semCandidato(v),
         cliques
       );
 
-      Pj.delete(v);
-      Xj.add(v);
+      V.P.delete(v);
+      V.X.add(v);
     }
   }
 }
@@ -278,7 +329,7 @@ export type Clique = {
   jogos: string[],
 };
 
-export async function encontrarPanelinhasMaximais(acertos: boolean): Promise<Clique[]> {
+export async function encontrarPanelinhasMaximais(acertos: boolean) {
   const G = await obterBipartido(acertos);
 
   const cliques: [string[], string[]][] = [];
@@ -287,19 +338,29 @@ export async function encontrarPanelinhasMaximais(acertos: boolean): Promise<Cli
    const usuariosAnteriores = new Set<string>();
 
    for (const ui of ordemUsuarios) {
-     const [usuariosNP, jogosNP] = projectionExtendedNeighborhood(G, ui);
-     const Pi = new Set([...usuariosNP].filter(usuarioId => !usuariosAnteriores.has(usuarioId)));
-     const Xi = new Set([...usuariosNP].filter(usuarioId => usuariosAnteriores.has(usuarioId)));
+    const [usuariosNP, jogosNP] = projectionExtendedNeighborhood(G, ui);
+    const Pi = new Set([...usuariosNP].filter(usuarioId => !usuariosAnteriores.has(usuarioId)));
+    const Xi = new Set([...usuariosNP].filter(usuarioId => usuariosAnteriores.has(usuarioId)));
 
-     bronKerboschBipartido(
-       G,
-       [new Set<string>([ui]), new Set<string>()],
-       [Pi, jogosNP],
-       [Xi, new Set<string>()],
-       cliques
-     );
-
-     usuariosAnteriores.add(ui);
+    bronKerboschBipartido(
+      new Particao(
+       G.conjuntoUsuarios,
+       G.jogosPorUsuario,
+       new Set<string>([ui]),
+       Pi,
+       Xi
+      ),
+      new Particao(
+       new Set(G.conjuntoJogos.keys()),
+       G.conjuntoJogos,
+       new Set<string>(),
+       jogosNP,
+       new Set<string>()
+      ),
+      cliques
+    );
+    
+    usuariosAnteriores.add(ui);
    }
 
   return cliques

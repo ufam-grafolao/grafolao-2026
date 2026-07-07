@@ -5,7 +5,7 @@ import { cliquesResponseSchema } from './cliques.schema.js'
 export async function cliquesRoutes(app: FastifyInstance) {
   // Salva ou edita palpite (upsert)
   app.get('/cliques', {
-    preHandler: [app.authenticate],
+    preHandler: [/* app.authenticate */],
     schema: {
       response: cliquesResponseSchema,
     },
