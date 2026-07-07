@@ -99,6 +99,16 @@ class Particao {
     this.X = X;
   }
 
+  clone(): Particao {
+    return new Particao(
+      this.ids,
+      this.vizinhos,
+      new Set(this.R),
+      new Set(this.P),
+      new Set(this.X),
+    )
+  }
+
   /**
    * @brief Cria outra partição tirando `u` (desta partição) do conjunto de candidatos `P` e adicionando-o ao conjunto maximal `R`.
    */
@@ -331,37 +341,39 @@ export type Clique = {
 
 export async function encontrarPanelinhasMaximais(acertos: boolean) {
   const G = await obterBipartido(acertos);
+  const jogos = new Set(G.conjuntoJogos.keys());
 
   const cliques: [string[], string[]][] = [];
 
-   const ordemUsuarios = obterOrdemBidegenerescenciaUsuarios(G);
-   const usuariosAnteriores = new Set<string>();
-
-   for (const ui of ordemUsuarios) {
-    const [usuariosNP, jogosNP] = projectionExtendedNeighborhood(G, ui);
-    const Pi = new Set([...usuariosNP].filter(usuarioId => !usuariosAnteriores.has(usuarioId)));
-    const Xi = new Set([...usuariosNP].filter(usuarioId => usuariosAnteriores.has(usuarioId)));
+  const U = new Particao(
+    G.conjuntoUsuarios,
+    G.jogosPorUsuario,
+    new Set(),
+    new Set(G.conjuntoUsuarios),
+    new Set()
+  );
+  
+  const V = new Particao(
+    jogos,
+    G.conjuntoJogos,
+    new Set(),
+    new Set(jogos),
+    new Set()
+  );
+  
+  for (const ui of G.conjuntoUsuarios) {
+    U.R.add(ui);
+    U.P.delete(ui);
 
     bronKerboschBipartido(
-      new Particao(
-       G.conjuntoUsuarios,
-       G.jogosPorUsuario,
-       new Set<string>([ui]),
-       Pi,
-       Xi
-      ),
-      new Particao(
-       new Set(G.conjuntoJogos.keys()),
-       G.conjuntoJogos,
-       new Set<string>(),
-       jogosNP,
-       new Set<string>()
-      ),
+      U.clone(),
+      V.clone(),
       cliques
     );
-    
-    usuariosAnteriores.add(ui);
-   }
+
+    U.X.add(ui);
+    U.R.delete(ui);
+  }
 
   return cliques
     .sort((a, b) => (b[0].length * b[1].length) - (a[0].length * a[1].length)) // Ordenar por tamanho decrescente em arestas (|U| * |V|)
