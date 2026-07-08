@@ -1,3 +1,43 @@
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+export type CliquesOrdem = 'vertices' | 'arestas';
+
+// ─── Respostas ────────────────────────────────────────────────────────────────
+
+export type Biclique = [number[], number[]];
+
+export type CliqueUsuario = {
+  id: string,
+  nome: string,
+  avatarUrl?: string,
+}
+
+export type CliqueJogo = {
+  id: string,
+  timeCasa?: string,
+  timeVisitante?: string,
+  golsCasa?: number,
+  golsVisitante?: number,
+}
+
+export type CliquesResponse = {
+  usuarios: CliqueUsuario[],
+  jogos: CliqueJogo[],
+  bicliques: Biclique[],
+}
+
+// ─── Query Params ─────────────────────────────────────────────────────────────
+
+export type CliquesQueryParams = {
+  ordem?: CliquesOrdem,
+  minimoUsuarios?: number,
+  minimoJogos?: number,
+  comigo?: boolean,
+  comJogo?: string,
+}
+
+// ─── JSON Schemas ─────────────────────────────────────────────────────────────
+
 const cliquesSchema = {
   type: 'object',
   properties: {
@@ -47,6 +87,29 @@ const cliquesSchema = {
     }
   }
 }
+
+export const cliquesQuerySchema = {
+  type: 'object',
+  properties: {
+    ordem: {
+      type: 'string',
+      enum: ['vertices', 'arestas', 'usuarios', 'jogos'],
+    },
+    minimoUsuarios: {
+      type: 'number',
+      minimum: 0,
+    },
+    minimoJogos: {
+      type: 'number',
+      minimum: 0,
+    },
+    comigo: {
+      type: 'boolean',
+      default: false
+    },
+    comJogo: { type: 'string' },
+  },
+};
 
 export const cliquesResponseSchema = {
   200: cliquesSchema,

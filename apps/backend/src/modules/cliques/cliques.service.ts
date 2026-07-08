@@ -1,21 +1,8 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../../db/prisma.js'
+import { Biclique, CliqueJogo, CliquesOrdem, CliquesResponse, CliqueUsuario } from './cliques.schema.js';
 
 type Status = Prisma.PalpiteGetPayload<{}>['status'];
-
-type Usuario = {
-  id: string,
-  nome: string,
-  avatarUrl?: string,
-}
-
-type Jogo = {
-  id: string,
-  timeCasa: string | undefined,
-  timeVisitante: string | undefined,
-  golsCasa: number | undefined,
-  golsVisitante: number | undefined,
-}
 
 
 /**
@@ -77,16 +64,12 @@ class Particao<I> {
   }
 }
 
-const obterStatusWhere = (acertos: boolean) => ({
-  in: (acertos ? ['ACERTO_PLACAR', 'ACERTO_VENCEDOR'] : ['PENDENTE', 'ERRO']) as Status[]
-} as const);
-
 /**
  * @brief Obtém as arestas de um grafo bipartido representando palpiteiros x jogos. Cada elemento do vetor é um jogo,
  * contendo os palpites dos usuários
  */
-async function obterBipartido(acertos: boolean): Promise<[Particao<Usuario>, Particao<Jogo>]> {
-  const STATUS_WHERE = obterStatusWhere(acertos);
+async function obterBipartido(): Promise<[Particao<CliqueUsuario>, Particao<CliqueJogo>]> {
+  const STATUS_WHERE = { in: ['ACERTO_PLACAR', 'ACERTO_VENCEDOR'] as Status[] };
 
   const [jogos, usuarios] = await prisma.$transaction([
     prisma.jogo.findMany({
@@ -116,7 +99,7 @@ async function obterBipartido(acertos: boolean): Promise<[Particao<Usuario>, Par
   ]);
 
   // Construir partição de Usuários
-  const U = new Particao<Usuario>([]);
+  const U = new Particao<CliqueUsuario>([]);
   for (let usuarioIndex = 0; usuarioIndex < usuarios.length; usuarioIndex++) {
     const usuario = usuarios[usuarioIndex];
     U.vertices.push({
@@ -133,7 +116,7 @@ async function obterBipartido(acertos: boolean): Promise<[Particao<Usuario>, Par
   }
 
   // Construir partição de Jogos
-  const J = new Particao<Jogo>([]);
+  const J = new Particao<CliqueJogo>([]);
   for (let jogoIndex = 0; jogoIndex < jogos.length; jogoIndex++) {
     const jogo = jogos[jogoIndex];
     J.vertices.push({
@@ -157,7 +140,7 @@ async function obterBipartido(acertos: boolean): Promise<[Particao<Usuario>, Par
 function testeMaximalidade<U, V>(
   U: Particao<U>,
   V: Particao<V>,
-  cliques: [number[], number[]][]
+  bicliques: Biclique[]
 ) {
   // Terminam a recursão porém não formam bicliques maximais
   if (
@@ -172,7 +155,7 @@ function testeMaximalidade<U, V>(
     (U.P.size === 0 && U.X.size === 0) ||
     (V.P.size === 0 && V.X.size === 0)
   ) {
-    cliques.push([[...U.R, ...U.P], [...V.R, ...V.P]]);
+    bicliques.push([[...U.R, ...U.P], [...V.R, ...V.P]]);
     return true;
   }
 
@@ -182,7 +165,7 @@ function testeMaximalidade<U, V>(
 /**
  * @brief Realiza uma escolha gulosa em U pelo vértice com maior grau (número de vizinhos em V).
  */
-function escolherPivo<U, V>(U: Particao<U>, V: Particao<V>): number {
+function escolherPivoGuloso<U, V>(U: Particao<U>, V: Particao<V>): number {
   const set = U.X.size !== 0 ? U.X : U.P;
 
   let [pivot, maxDegree] = [NaN, Number.NEGATIVE_INFINITY];
@@ -212,15 +195,15 @@ function escolherPivo<U, V>(U: Particao<U>, V: Particao<V>): number {
 function bronKerboschBipartido<U, V>(
   U: Particao<U>,
   V: Particao<V>,
-  cliques: [number[], number[]][]
+  bicliques: Biclique[]
 ) {
   // Adicionar R U P como um biclique maximal
-  if (testeMaximalidade(U, V, cliques))
+  if (testeMaximalidade(U, V, bicliques))
     return;
 
   // Escolher um pivô para reduzir recursões
   const pivoEmU = U.P.size > V.P.size;
-  const pivo = pivoEmU ? escolherPivo(U, V) : escolherPivo(V, U);
+  const pivo = pivoEmU ? escolherPivoGuloso(U, V) : escolherPivoGuloso(V, U);
   const pivoEmP = pivoEmU ? U.P.has(pivo) : V.P.has(pivo);
 
   // Filtrar candidatos a serem iterados evitando vizinhos do pivô para reduzir recursões
@@ -239,7 +222,7 @@ function bronKerboschBipartido<U, V>(
     bronKerboschBipartido(
       U.semCandidato(u),
       V.apenasVizinhosDe(u),
-      cliques
+      bicliques
     );
 
     U.P.delete(u);
@@ -251,7 +234,7 @@ function bronKerboschBipartido<U, V>(
     bronKerboschBipartido(
       U.apenasVizinhosDe(v),
       V.semCandidato(v),
-      cliques
+      bicliques
     );
 
     V.P.delete(v);
@@ -259,20 +242,97 @@ function bronKerboschBipartido<U, V>(
   }
 }
 
-export async function encontrarPanelinhasMaximais(acertos: boolean) {
-  const [U, V] = await obterBipartido(acertos);
+const ORDENACOES = {
+  /**
+   * @brief Ordena bicliques por tamanho decrescente em vértices.
+   */
+  'vertices': (a: Biclique, b: Biclique) => (b[0].length + b[1].length) - (a[0].length + a[1].length),
+
+  /**
+   * @brief Ordena bicliques por tamanho decrescente em usuários.
+   */
+  'usuarios': (a: Biclique, b: Biclique) => b[0].length - a[0].length,
+
+  /**
+   * @brief Ordena bicliques por tamanho decrescente em jogos.
+   */
+  'jogos': (a: Biclique, b: Biclique) => b[1].length - a[1].length,
+
+  /**
+   * @brief Ordena bicliques por tamanho decrescente em arestas.
+   */
+  'arestas': (a: Biclique, b: Biclique) => (b[0].length * b[1].length) - (a[0].length * a[1].length),
+} as const;
+
+export async function encontrarPanelinhasMaximais(
+  ordem: CliquesOrdem = 'arestas',
+  minimoUsuarios: number = 2,
+  minimoJogos: number = 1,
+  comUsuario?: string,
+  comJogo?: string,
+) {
+  const [U, V] = await obterBipartido();
 
   // Iniciar conjuntos de candidatos com todos os vértices de cada partição
   U.P = new Set(Array.from({ length: U.vertices.length }, (_, index) => index));
   V.P = new Set(Array.from({ length: V.vertices.length }, (_, index) => index));
 
   // Enumerar todas as bicliques maximais
-  const cliques: [number[], number[]][] = [];
-  bronKerboschBipartido(U, V, cliques);
+  const bicliques: Biclique[] = [];
 
-  return {
-    usuarios: U.vertices,
-    jogos: V.vertices,
-    bicliques: cliques.sort((a, b) => b[0].length + b[1].length - a[0].length - a[1].length) // Ordenar por tamanho decrescente em arestas (|U| * |V|)
-  }
+  // DEBUG: `console.time` para validação de performance do algoritmo
+  console.time('Bron-Kerbosch Bipartido');
+  bronKerboschBipartido(U, V, bicliques);
+  console.timeEnd('Bron-Kerbosch Bipartido');
+
+  // Índice dos usuários e jogos a serem usados no filtro
+  const usuarioFiltro = comUsuario ? U.vertices.findIndex(u => u.id === comUsuario) : undefined;
+  const jogoFiltro = comJogo ? V.vertices.findIndex(j => j.id === comJogo) : undefined;
+
+  // Mapeia índices gerais de usuários e jogos para índices filtrados de resposta
+  const userIndexmap = new Map<number, number>();
+  const jogoIndexmap = new Map<number, number>();
+
+  const resultado = bicliques
+    .filter(biclique => {
+      const [usuarios, jogos] = biclique;
+      return (
+        usuarios.length >= minimoUsuarios
+        && jogos.length >= minimoJogos
+        && (usuarioFiltro === undefined || usuarios.includes(usuarioFiltro))
+        && (jogoFiltro === undefined || jogos.includes(jogoFiltro))
+      );
+    })
+    .sort(ORDENACOES[ordem])
+    .reduce((acc, biclique) => {
+      const [usuarios, jogos] = biclique;
+
+      // Mapear índice antigo de usuários para índice novo do vetor de resposta filtrado
+      for (let ui = 0; ui < usuarios.length; ui++) {
+        const u = usuarios[ui];
+        if (!userIndexmap.has(u)) {
+          userIndexmap.set(u, acc.usuarios.length);
+          acc.usuarios.push(U.vertices[u]);
+        }
+
+        usuarios[ui] = userIndexmap.get(u)!;
+      }
+
+      // Mapear índice antigo de jogos para índice novo do vetor de resposta filtrado
+      for (let ji = 0; ji < jogos.length; ji++) {
+        const j = jogos[ji];
+        if (!jogoIndexmap.has(j)) {
+          jogoIndexmap.set(j, acc.jogos.length);
+          acc.jogos.push(V.vertices[j]);
+        }
+
+        jogos[ji] = jogoIndexmap.get(j)!;
+      }
+
+      acc.bicliques.push([usuarios, jogos]);
+
+      return acc;
+    }, { usuarios: [], jogos: [], bicliques: [] } as CliquesResponse);
+
+  return resultado;
 }

@@ -1,13 +1,14 @@
 import { FastifyInstance, RouteHandlerMethod } from 'fastify'
 import { getCliquesController } from './cliques.contoller.js'
-import { cliquesResponseSchema } from './cliques.schema.js'
+import { cliquesQuerySchema, cliquesResponseSchema } from './cliques.schema.js'
 
 export async function cliquesRoutes(app: FastifyInstance) {
   // Salva ou edita palpite (upsert)
   app.get('/cliques', {
-    preHandler: [/* app.authenticate */],
+    preHandler: [app.authenticate],
     schema: {
+      querystring: cliquesQuerySchema,
       response: cliquesResponseSchema,
     },
-  }, getCliquesController)
+  }, getCliquesController as RouteHandlerMethod)
 }
