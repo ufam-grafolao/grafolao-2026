@@ -62,15 +62,9 @@ export default function CliquesEPanelinhasPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.28em] text-muted-foreground">
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Cliques e Panelinhas
-        </div>
-        <h1 className="text-2xl font-semibold">Cliques maximais em forma de blobs</h1>
+        <h1 className="text-2xl font-semibold">Cliques e Panelinhas</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          A rota <span className="font-medium text-foreground">GET /cliques</span> retorna usuários, jogos e bicliques
-          máximas já ordenadas. Aqui as 3 primeiras bicliques são desenhadas como agrupamentos com usuários em avatares,
-          jogos em círculos vazios e a envoltória visual destacando a coesão da panelinha.
+          Usuários e jogos são dispostos em um grafo bipartido, onde as arestas denotam que o usuário acertou um palpite naquele jogo. A partir desse grafo, é possível extrair bicliques máximas, que representam panelinhas de usuários que acertaram os mesmos jogos.
         </p>
       </div>
 
@@ -95,17 +89,6 @@ export default function CliquesEPanelinhasPage() {
 
         <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-border bg-background p-4">
           <div className="flex flex-wrap items-center gap-2">
-            {ORDENACOES.map(item => (
-              <Button
-                key={item.value}
-                size="sm"
-                variant={ordem === item.value ? 'default' : 'outline'}
-                onClick={() => setOrdem(item.value)}
-              >
-                {item.label}
-              </Button>
-            ))}
-
             <label className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground">
               <input
                 type="checkbox"
@@ -113,7 +96,7 @@ export default function CliquesEPanelinhasPage() {
                 onChange={event => setComigo(event.target.checked)}
                 className="h-4 w-4 rounded border-border"
               />
-              Comigo
+              Apenas bicliques que me incluem
             </label>
           </div>
 
@@ -144,6 +127,24 @@ export default function CliquesEPanelinhasPage() {
                 placeholder="ID do jogo (opcional)"
               />
             </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="flex flex-col flex-wrap items-start gap-2">
+              <span className="text-xs text-muted-foreground">Ordenar por</span>
+              <div className="flex flex-wrap items-start gap-2">
+                {ORDENACOES.map(item => (
+                  <Button
+                    key={item.value}
+                    size="sm"
+                    variant={ordem === item.value ? 'default' : 'outline'}
+                    onClick={() => setOrdem(item.value)}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
