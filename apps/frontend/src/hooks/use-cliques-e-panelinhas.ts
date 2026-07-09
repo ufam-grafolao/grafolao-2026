@@ -22,7 +22,7 @@ function montarQueryString(params: CliquesQueryParams) {
 export function useCliquesEPanelinhas(params: CliquesQueryParams) {
   return useQuery({
     queryKey: ['cliques-e-panelinhas', params.ordem, params.minimoUsuarios, params.minimoJogos, params.comigo, params.comJogo],
-    queryFn: () => apiFetch<CliquesResponse>(`/cliques${montarQueryString(params)}`),
+    queryFn: () => apiFetch<CliquesResponse>(`/grafos/cliques${montarQueryString(params)}`),
     staleTime: 5 * 60 * 1000,
   })
 }
