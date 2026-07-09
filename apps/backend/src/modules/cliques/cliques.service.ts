@@ -314,6 +314,7 @@ export async function encontrarPanelinhasMaximais(
       );
     })
     .sort(ORDENACOES[ordem])
+    .slice(0, 3)
     .reduce((acc, biclique) => {
       const [usuarios, jogos] = biclique;
 
