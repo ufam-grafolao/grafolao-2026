@@ -195,19 +195,27 @@ function escolherPivoGuloso<U, V>(U: Particao<U>, V: Particao<V>): number {
 function bronKerboschBipartido<U, V>(
   U: Particao<U>,
   V: Particao<V>,
-  bicliques: Biclique[]
+  bicliques: Biclique[],
+  tipoPivo: 'guloso' | 'primeiro' | 'nenhum' = 'guloso'
 ) {
   // Adicionar R U P como um biclique maximal
   if (testeMaximalidade(U, V, bicliques))
     return;
 
+
+  const escolherPivo = {
+    'guloso': escolherPivoGuloso,
+    'primeiro': <U,V>(U: Particao<U>, V: Particao<V>) => (U.P.size !== 0 ? U.P.values().next().value : V.P.values().next().value) as number,
+    'nenhum': () => null
+  }[tipoPivo];
+
   // Escolher um pivô para reduzir recursões
   const pivoEmU = U.P.size > V.P.size;
-  const pivo = pivoEmU ? escolherPivoGuloso(U, V) : escolherPivoGuloso(V, U);
-  const pivoEmP = pivoEmU ? U.P.has(pivo) : V.P.has(pivo);
+  const pivo = pivoEmU ? escolherPivo(U, V) : escolherPivo(V, U);
+  const pivoEmP = pivo !== null ? (pivoEmU ? U.P.has(pivo) : V.P.has(pivo)) : false;
 
   // Filtrar candidatos a serem iterados evitando vizinhos do pivô para reduzir recursões
-  let [itU, itV] = (
+  let [itU, itV] = pivo !== null ? (
     pivoEmU ? [
       pivoEmP ? [pivo] : [],
       [...V.P].filter(j => !U.vizinhos.get(pivo)!.has(j))
@@ -215,14 +223,15 @@ function bronKerboschBipartido<U, V>(
       [...U.P].filter(u => !V.vizinhos.get(pivo)!.has(u)),
       pivoEmP ? [pivo] : [],
     ]
-  );
+  ) : [U.P, V.P];
 
   // Iterar sobre os candidatos em U
   for (const u of itU) {
     bronKerboschBipartido(
       U.semCandidato(u),
       V.apenasVizinhosDe(u),
-      bicliques
+      bicliques,
+      tipoPivo
     );
 
     U.P.delete(u);
@@ -234,7 +243,8 @@ function bronKerboschBipartido<U, V>(
     bronKerboschBipartido(
       U.apenasVizinhosDe(v),
       V.semCandidato(v),
-      bicliques
+      bicliques,
+      tipoPivo
     );
 
     V.P.delete(v);
@@ -282,7 +292,7 @@ export async function encontrarPanelinhasMaximais(
 
   // DEBUG: `console.time` para validação de performance do algoritmo
   console.time('Bron-Kerbosch Bipartido');
-  bronKerboschBipartido(U, V, bicliques);
+  bronKerboschBipartido(U, V, bicliques, 'guloso');
   console.timeEnd('Bron-Kerbosch Bipartido');
 
   // Índice dos usuários e jogos a serem usados no filtro

@@ -636,10 +636,9 @@ export function BicliqueCanvas({ bicliques, selecionada, onSelecionar }: Bicliqu
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm shadow-black/5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">Grafo unificado</p>
-          <h3 className="mt-1 text-lg font-semibold">Top 3 bicliques sobrepostas</h3>
+          <h3 className="mt-1 text-lg font-semibold">Top 3 panelinhas</h3>
           <p className="text-sm text-muted-foreground">
-            O grafo abaixo demonstra um subgrafo induzido pelos 3 maiores bicliques, mostrando como os usuários e jogos se conectam entre si nas top 3 maiores panelinhas. As panelinhas são escolhidas de acordo com os filtros e ordenação aplicados na acima.
+            O grafo abaixo demonstra um subgrafo induzido pelos 3 maiores bicliques maximais do grafo, mostrando como os usuários e jogos se conectam entre si nas top 3 maiores panelinhas. As panelinhas são escolhidas de acordo com os filtros e ordenação aplicados na acima.
           </p>
         </div>
 

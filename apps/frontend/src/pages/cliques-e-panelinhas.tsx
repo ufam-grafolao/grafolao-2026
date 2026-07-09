@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -59,6 +59,10 @@ export default function CliquesEPanelinhasPage() {
   const totalBicliques = cliquesQuery.data?.bicliques.length ?? 0
   const maiorBiclique = bicliques[0]
 
+  if (selecionada >= bicliques.length && bicliques.length > 0) {
+    setSelecionada(0);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -73,8 +77,8 @@ export default function CliquesEPanelinhasPage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatCard label="Usuários retornados" value={String(totalUsuarios)} />
             <StatCard label="Jogos retornados" value={String(totalJogos)} />
-            <StatCard label="Bicliques máximas" value={String(totalBicliques)} />
-            <StatCard label="Maior biclique" value={maiorBiclique ? `${maiorBiclique.usuarios.length} x ${maiorBiclique.jogos.length}` : '—'} />
+            <StatCard label="Bicliques máximais" value={String(totalBicliques)} />
+            <StatCard label="Maior biclique" value={maiorBiclique ? `${maiorBiclique.usuarios.length} usuários x ${maiorBiclique.jogos.length} jogos` : '—'} />
           </div>
 
           <button
