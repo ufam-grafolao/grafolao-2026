@@ -18,6 +18,7 @@ import SobrePage from './pages/sobre'
 import ChaveamentoPage from './pages/chaveamento'
 import { Loader2 } from 'lucide-react'
 import GrafoConfrontosPage from './pages/grafo-confrontos'
+import CliquesEPanelinhasPage from './pages/cliques-e-panelinhas'
 
 function GlobalLoading() {
   const isFetching = useIsFetching()
@@ -63,7 +64,7 @@ export default function App() {
             <Route path="/sobre" element={<SobrePage />} />
             <Route path="/grafos/confrontos" element={<GrafoConfrontosPage/>} />
             <Route path="/grafos/dag" element={<div>Caminho Mínimo — em breve</div>} />
-            <Route path="/grafos/cliques" element={<div>Cliques e Panelinhas - Comunidades Máximas — em breve</div>} />
+            <Route path="/grafos/cliques" element={<CliquesEPanelinhasPage />} />
             <Route path="/grafos/mst" element={<div>Aventura da Zebra -  MST da Divergência — em breve</div>} />
             <Route path="/grafos/redes" element={<div>Redes de Similaridades - Laços de Palpites — em breve</div>} />
 
