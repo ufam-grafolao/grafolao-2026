@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 3333
 
-CMD ["sh", "-c", "npm install && npm audit fix --force && npx prisma generate && npm run dev"]
+CMD ["npm", "run", "dev"]
