@@ -17,7 +17,6 @@ import { palpitesEspeciaisRoutes } from './modules/palpites-especiais/palpites-e
 import { jogadoresRoutes } from './modules/jogadores/jogadores.routes.js'
 import { timesRoutes } from './modules/times/times.routes.js'
 import { grafoConfrontosRoutes } from './modules/grafo-confrontos/grafo-confrontos.routes.js'
-import { cliquesRoutes } from './modules/cliques/cliques.routes.js'
 
 const app = Fastify({
   logger: {
@@ -85,7 +84,6 @@ await app.register(palpitesEspeciaisRoutes)
 await app.register(jogadoresRoutes)
 await app.register(timesRoutes)
 await app.register(grafoConfrontosRoutes)
-await app.register(cliquesRoutes)
 
 app.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
