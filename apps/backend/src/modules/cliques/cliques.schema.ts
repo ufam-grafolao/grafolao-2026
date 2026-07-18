@@ -84,7 +84,10 @@ const cliquesSchema = {
           }
         ]
       }
-    }
+    },
+    totalUsuarios: { type: 'number' },
+    totalJogos: { type: 'number' },
+    totalBicliques: { type: 'number' },
   }
 }
 

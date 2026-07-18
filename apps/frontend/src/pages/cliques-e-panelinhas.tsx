@@ -54,9 +54,9 @@ export default function CliquesEPanelinhasPage() {
   const bicliques = useMemo(() => resolverBicliques(cliquesQuery.data), [cliquesQuery.data])
   const bicliqueSelecionada = bicliques.find(item => item.indice === selecionada) ?? bicliques[0] ?? null
 
-  const totalUsuarios = cliquesQuery.data?.usuarios.length ?? 0
-  const totalJogos = cliquesQuery.data?.jogos.length ?? 0
-  const totalBicliques = cliquesQuery.data?.bicliques.length ?? 0
+  const totalUsuarios = cliquesQuery.data?.totalUsuarios ?? 0
+  const totalJogos = cliquesQuery.data?.totalJogos ?? 0
+  const totalBicliques = cliquesQuery.data?.totalBicliques ?? 0
   const maiorBiclique = bicliques[0]
 
   if (selecionada >= bicliques.length && bicliques.length > 0) {

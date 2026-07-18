@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
-import { createNodeImageProgram } from '@sigma/node-image'
+import { createNodeImageProgram, NodeImageProgram } from '@sigma/node-image'
 import { floatColor } from 'sigma/utils'
-import { EdgeLineProgram } from 'sigma/rendering'
+import { EdgeLineProgram, NodeProgram, Program, ProgramAttributeSpecification } from 'sigma/rendering'
 import Graph from 'graphology'
 import Sigma from 'sigma'
 import forceAtlas2 from 'graphology-layout-forceatlas2'
@@ -219,7 +219,20 @@ void main() {
 }
 `;
 
-const ImageBaseProgram = createNodeImageProgram();
+// Standard TS mixin-constructor helper (see TS handbook's mixins pattern) —
+// widens a class's instance type without an `unknown` bridge.
+type Constructor<T = object> = new (...args: any[]) => T;
+
+// Extends `NodeImageProgram` with properties and methods present in the underlying type but not exposed in the API.
+const ImageBaseProgram = createNodeImageProgram() as Constructor<
+  InstanceType<typeof NodeImageProgram> & {
+    array: (typeof Program.prototype)["array"];
+    getDefinition(): ReturnType<typeof Program.prototype.getDefinition>;
+    processVisibleItem(...args: Parameters<typeof NodeProgram.prototype.processVisibleItem>): void;
+  }
+> & {
+  textureManager: { getTextures(): unknown[] };
+};
 
 class CustomUserNodeProgram extends ImageBaseProgram {
   getDefinition() {

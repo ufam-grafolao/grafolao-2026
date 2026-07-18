@@ -20,6 +20,9 @@ export interface CliquesResponse {
   usuarios: CliqueUsuario[]
   jogos: CliqueJogo[]
   bicliques: Biclique[]
+  totalUsuarios: number
+  totalJogos: number
+  totalBicliques: number
 }
 
 export interface CliquesQueryParams {

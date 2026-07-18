@@ -290,10 +290,11 @@ export async function encontrarPanelinhasMaximais(
   // Enumerar todas as bicliques maximais
   const bicliques: Biclique[] = [];
 
-  // DEBUG: `console.time` para validação de performance do algoritmo
-  console.time('Bron-Kerbosch Bipartido');
   bronKerboschBipartido(U, V, bicliques, 'guloso');
-  console.timeEnd('Bron-Kerbosch Bipartido');
+
+  const totalUsuarios = U.vertices.length;
+  const totalJogos = V.vertices.length;
+  const totalBicliques = bicliques.length;
 
   // Índice dos usuários e jogos a serem usados no filtro
   const usuarioFiltro = comUsuario ? U.vertices.findIndex(u => u.id === comUsuario) : undefined;
@@ -314,6 +315,7 @@ export async function encontrarPanelinhasMaximais(
       );
     })
     .sort(ORDENACOES[ordem])
+    .slice(0, 3)
     .reduce((acc, biclique) => {
       const [usuarios, jogos] = biclique;
 
@@ -344,5 +346,10 @@ export async function encontrarPanelinhasMaximais(
       return acc;
     }, { usuarios: [], jogos: [], bicliques: [] } as CliquesResponse);
 
-  return resultado;
+  return {
+    ...resultado,
+    totalUsuarios,
+    totalJogos,
+    totalBicliques,
+  };
 }
