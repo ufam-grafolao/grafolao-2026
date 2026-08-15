@@ -126,7 +126,12 @@ grafolao-2026/
 │           ├── types/
 │           └── lib/
 ├── data/
-│   └── copa2026.json                   ← calendário completo
+│   ├── copa2026.json                   ← calendário completo
+│   ├── usuarios_anonimizados.csv       ← dados de reprodução (WFA 2026)
+│   ├── jogos.csv
+│   ├── palpites_anonimizados.csv
+│   ├── confrontos_anonimizados.csv
+│   └── README.md                       ← documentação dos dados de reprodução
 ├── docker-compose.yml
 └── README.md
 ```
@@ -223,6 +228,21 @@ O **primeiro usuário** a logar via Google vira **Admin** automaticamente.
 ## Banco de dados
 
 **16 tabelas:** `usuarios`, `times`, `jogos`, `resultados`, `palpites`, `palpites_especiais`, `confrontos`, `pagerank_snapshots`, `ciclos_detectados`, `estados_rodada`, `acertos_compartilhados`, `clique_snapshots`, `comunidades`, `membros_comunidade`, `convites_comunidade`, `solicitacoes_comunidade`
+
+---
+
+## Dados de Reprodução (WFA 2026)
+
+Os dados utilizados nos experimentos do artigo submetido ao **Workshop de Ferramentas e Aplicações (WFA 2026 / WebMedia)** estão disponíveis em [`data/`](./data), com documentação completa das colunas e do procedimento de reprodução em [`data/README.md`](./data/README.md).
+
+Os dados foram extraídos da instância de produção ao final da fase avaliada da Copa do Mundo 2026 e **anonimizados**: todo identificador de usuário foi substituído por um pseudônimo estável (`user1`, `user2`, ...), sem nome, e-mail ou qualquer outro dado pessoal. Os arquivos disponíveis são:
+
+- `usuarios_anonimizados.csv` — pseudônimo de cada participante e data de criação da conta
+- `jogos.csv` — calendário completo da competição (times, fase, data, placar oficial)
+- `palpites_anonimizados.csv` — cada palpite registrado (usuário pseudonimizado, jogo, placar previsto, pontuação)
+- `confrontos_anonimizados.csv` — arestas do grafo de confrontos já agregadas (vencedor, perdedor, peso)
+
+Esses dados permitem reproduzir a modelagem do grafo de confrontos e os três algoritmos aplicados sobre ele (detecção de ciclos, PageRank, caminho mais longo), reconstruindo os resultados apresentados no artigo.
 
 ---
 
