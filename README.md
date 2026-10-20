@@ -231,9 +231,9 @@ O **primeiro usuário** a logar via Google vira **Admin** automaticamente.
 
 ---
 
-## Dados de Reprodução (WFA 2026)
+## Dados de Reprodução
 
-Os dados utilizados nos experimentos do artigo submetido ao **Workshop de Ferramentas e Aplicações (WFA 2026 / WebMedia)** estão disponíveis em [`data/`](./data), com documentação completa das colunas e do procedimento de reprodução em [`data/README.md`](./data/README.md).
+Os dados utilizados nos experimentos estão disponíveis em [`data/`](./data), com documentação completa das colunas e do procedimento de reprodução em [`data/README.md`](./data/README.md).
 
 Os dados foram extraídos da instância de produção ao final da fase avaliada da Copa do Mundo 2026 e **anonimizados**: todo identificador de usuário foi substituído por um pseudônimo estável (`user1`, `user2`, ...), sem nome, e-mail ou qualquer outro dado pessoal. Os arquivos disponíveis são:
 
@@ -251,7 +251,6 @@ Esses dados permitem reproduzir a modelagem do grafo de confrontos e os três al
 | Nome | GitHub | Proposta |
 |---|---|---|
 | Samuel Davi (Autor) | [@Samuel-Davi](https://github.com/Samuel-Davi) | Proposta 2 — Grafo de Confrontos |
-| Victor Hugo | [@Victor-Hugo](https://github.com/vhodm) | Proposta 4 — Caminho Mínimo |
 | Paulo Victor | [@Paulo-Victor](https://github.com/plaaeo) | Proposta 5 — Cliques e Panelinhas |
 
 ---
