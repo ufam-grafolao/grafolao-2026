@@ -9,7 +9,9 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "node --import tsx/esm src/db/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.0",
@@ -26,6 +28,7 @@
     "@types/web-push": "^3.6.4",
     "prisma": "^6.0.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^5.1.0"
   }
 }
