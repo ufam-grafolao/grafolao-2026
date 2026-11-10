@@ -19,3 +19,4 @@ docs/relatorios/
 
 # Cobertura de testes (gerada)
 coverage/
+.vitest/
