@@ -12,7 +12,7 @@ Monorepo:
 - Banco: PostgreSQL no Supabase (pooler 6543 em produção); Docker Compose em desenvolvimento.
 - Dados da Copa: football-data.org (o campo `apiFootballId` é só nome legado).
 
-Regras de negócio: palpites fecham no início do jogo, máximo de 2 edições. Pontuação de grupos 10/5/2 (combináveis); mata-mata tem tabela própria em `palpites.service.ts`. Comunidades públicas/privadas com dono, moderador e membro. O primeiro usuário a logar vira Admin.
+Regras de negócio: palpites fecham no início do jogo, máximo de 2 edições. Pontuação de grupos: placar exato = 10 no total (sem somar o +2); vencedor ou empate certo = 5, mais 2 se acertar os gols de um time ou o saldo (máximo 7); mata-mata tem tabela própria em `apps/backend/src/modules/palpites/palpites.regras.ts` (documentada em `apps/backend/tests/README.md`). Comunidades públicas/privadas com dono, moderador e membro. O primeiro usuário a logar vira Admin.
 
 ## Estado verificado (diagnóstico de 05/11/2026, leitura de código, sem execução)
 
