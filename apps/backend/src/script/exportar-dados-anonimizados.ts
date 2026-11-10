@@ -12,7 +12,7 @@
  * "data/_privado/" ao .gitignore antes de rodar.
  *
  * Uso (a partir de apps/backend):
- *   npx tsx src/scripts/exportar-dados-anonimizados.ts
+ *   npx tsx src/script/exportar-dados-anonimizados.ts
  *
  * Saída em data/ (para commitar na main):
  *   - usuarios_anonimizados.csv
