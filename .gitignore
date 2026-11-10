@@ -14,3 +14,5 @@ EOF
 
 scripts/
 **/data/_privado/
+# Relatórios internos do agente (privados): nunca versionar
+docs/relatorios/
