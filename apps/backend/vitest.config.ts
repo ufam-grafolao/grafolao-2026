@@ -6,5 +6,12 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      // Sem meta mínima: o relatório mostra os arquivos que os testes carregam,
+      // para acompanhar a cobertura sem forçar um número.
+      reporter: [['text', { skipFull: false }], 'html'],
+      reportsDirectory: './coverage',
+    },
   },
 })
