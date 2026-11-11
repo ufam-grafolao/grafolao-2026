@@ -15,6 +15,7 @@ import {
   gerarConfrontosDoJogo,
 } from './grafo-confrontos.algoritmos.js'
 import type { ConfrontoAgregado } from './grafo-confrontos.algoritmos.js'
+import { ordenarRodadasPorData } from '../../shared/utils/ordenar-rodadas.js'
 
 
 /**
@@ -186,17 +187,20 @@ export async function buscarCaminhoMaisLongo(
  * para gerar gráficos de evolução temporal (bônus — Critério 06).
  */
 export async function buscarEvolucaoPorRodada(): Promise<EvolucaoRodadaResponse[]> {
-  const rodadasDistintas = await prisma.jogo.findMany({
-    where: { status: 'ENCERRADO' },
-    select: { rodada: true },
-    distinct: ['rodada'],
-    orderBy: { rodada: 'asc' },
+  // A ordem das rodadas vem da data do primeiro jogo de cada uma (e não do nome,
+  // pois "Matchday 10" vem antes de "Matchday 2" na ordem de texto).
+  const jogos = await prisma.jogo.findMany({
+    select: { rodada: true, dataHora: true, status: true },
   })
+
+  const rodadasComJogoEncerrado = new Set(
+    jogos.filter(j => j.status === 'ENCERRADO').map(j => j.rodada)
+  )
 
   const usuarios = await buscarUsuariosFiltrados(0)
   const resultado: EvolucaoRodadaResponse[] = []
 
-  const rodadasOrdenadas = rodadasDistintas.map(r => r.rodada)
+  const rodadasOrdenadas = ordenarRodadasPorData(jogos).filter(r => rodadasComJogoEncerrado.has(r))
 
   for (let i = 0; i < rodadasOrdenadas.length; i++) {
     const rodadasAcumuladas = rodadasOrdenadas.slice(0, i + 1)
