@@ -13,4 +13,13 @@ build/
 EOF
 
 scripts/
-data/_privado/
+**/data/_privado/
+# Relatórios internos do agente (privados): nunca versionar
+docs/relatorios/
+
+# Cobertura de testes (gerada)
+coverage/
+.vitest/
+
+# Cache incremental do TypeScript (muda a cada build)
+*.tsbuildinfo
