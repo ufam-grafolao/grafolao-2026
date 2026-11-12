@@ -20,3 +20,6 @@ docs/relatorios/
 # Cobertura de testes (gerada)
 coverage/
 .vitest/
+
+# Cache incremental do TypeScript (muda a cada build)
+*.tsbuildinfo

@@ -1,0 +1,108 @@
+name: CI
+
+# Roda em PRs para dev e main e em pushes para dev.
+# Nenhum segredo é necessário: o build do backend usa só `prisma generate`
+# (não conecta ao banco) e os testes são unitários, sem banco.
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+
+# Versões do Node usadas só no CI (não alteram o runtime de produção).
+env:
+  # Frontend: a Vercel usa Node 24.x.
+  NODE_FRONTEND: '24'
+  # Backend: versão informada pelo mantenedor (Render); não consta no repositório.
+  NODE_BACKEND: '24.14.1'
+
+permissions:
+  contents: read
+
+# Uma nova execução na mesma PR (ou branch) cancela a anterior.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# ATENÇÃO: o `name:` de cada job aparece na proteção de branch. Não renomear
+# sem atualizar as regras de proteção da main.
+jobs:
+  backend:
+    name: 'Backend: build e testes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_BACKEND }}
+          cache: npm
+
+      - name: Instalar dependências (todos os workspaces)
+        run: npm ci
+
+      - name: Gerar o Prisma Client (sem banco)
+        run: npm run db:generate
+
+      - name: Build
+        run: npm run build --workspace=apps/backend
+
+      - name: Testes com cobertura
+        run: npm run test:coverage --workspace=apps/backend
+
+  frontend:
+    name: 'Frontend: build'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_FRONTEND }}
+          cache: npm
+
+      - name: Instalar dependências (todos os workspaces)
+        run: npm ci
+
+      - name: Build
+        run: npm run build --workspace=apps/frontend
+
+  lint:
+    name: 'Lint (não bloqueante)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # TODO: remover `continue-on-error` quando a branch chore/lint zerar os
+    # erros do ESLint (depois do redesign do frontend) e então exigir este
+    # job na proteção da main.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_FRONTEND }}
+          cache: npm
+
+      - name: Instalar dependências (todos os workspaces)
+        run: npm ci
+
+      - name: Rodar o ESLint e resumir
+        working-directory: apps/frontend
+        run: |
+          # `|| true`: o ESLint sai com código 1 quando há erros; o resumo vem do JSON.
+          npx eslint . --format json --output-file "$RUNNER_TEMP/eslint.json" || true
+          erros=$(node -e "const r=require('$RUNNER_TEMP/eslint.json');console.log(r.reduce((s,f)=>s+f.errorCount,0))")
+          avisos=$(node -e "const r=require('$RUNNER_TEMP/eslint.json');console.log(r.reduce((s,f)=>s+f.warningCount,0))")
+          {
+            echo "## Lint do frontend (não bloqueante)"
+            echo
+            echo "- Erros: **$erros**"
+            echo "- Avisos: **$avisos**"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "erros=$erros avisos=$avisos"
+          if [ "$erros" -gt 0 ]; then
+            echo "::warning::ESLint encontrou $erros erro(s) e $avisos aviso(s) (job não bloqueante)."
+            exit 1
+          fi
