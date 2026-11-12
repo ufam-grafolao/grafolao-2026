@@ -13,6 +13,7 @@ Este diretório protege as regras que mais importam no Grafolão: **pontuação 
 | PageRank | `grafo-confrontos/pagerank.test.ts` | Soma 1 em grafo sem sorvedouro, ordem esperada e o comportamento atual com invicto |
 | Ciclos | `grafo-confrontos/ciclos.test.ts` | Ciclos conhecidos em grafos pequenos e deduplicação |
 | Caminho mais longo | `grafo-confrontos/caminho-mais-longo.test.ts` | Ótimo conhecido e `completou=false` quando o orçamento acaba |
+| Ordem das rodadas | `shared/ordenar-rodadas.test.ts` | Rodadas em ordem cronológica: "Matchday 2" antes de "Matchday 10" e mata-mata depois dos grupos |
 | Configuração | `smoke.test.ts` | O Vitest roda TypeScript e importa módulos do backend |
 
 **Por que unitários e sem banco:** as regras ficam em funções puras, que recebem dados e devolvem decisões. Elas foram separadas dos services (que falam com o Prisma) em:
