@@ -178,7 +178,7 @@ npm run test:coverage   # testes + cobertura
 - **O que é coberto:** as regras puras, extraídas dos services para funções sem banco: pontuação de grupos e mata-mata, prazo e limite de edições, arestas do grafo, PageRank, ciclos, caminho mais longo (inclusive `completou=false`) e ordenação cronológica das rodadas. Os testes usam apenas dados sintéticos (`user1`, `user2`, ...). Guia completo em [`apps/backend/tests/README.md`](./apps/backend/tests/README.md).
 - **Cobertura medida** apenas nos arquivos de regras puras que os testes carregam: 98,88% das instruções e 100% das linhas (execução de 2026-11-13). Não é cobertura do backend inteiro.
 - **O que não é coberto:** services e controllers (acesso ao Prisma e HTTP), frontend (sem testes) e fluxos E2E.
-- **CI** ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)), em PRs para `dev` e `main` e em pushes para `dev`: `Backend: build e testes`, `Frontend: build` e `Lint (não bloqueante)`. Segundo o mantenedor, a `main` está protegida e exige o CI (configuração do GitHub, não verificável pelo código).
+- **CI** ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)), em PRs para `dev` e `main` e em pushes para `dev`: `Backend: build e testes`, `Frontend: build` e `Lint (não bloqueante)`. Os jobs de backend e frontend passaram no GitHub Actions no commit `e758f80`; o de lint falha de propósito sem bloquear (24 erros herdados). Segundo o mantenedor, a `main` está protegida e exige o CI (configuração do GitHub, não verificável pelo código).
 - **Lint do frontend:** 24 erros e 3 avisos herdados (reconferido em 2026-11-13). Por isso o job de lint não bloqueia; a meta é zerá-los e passar a exigir o job.
 
 ---
