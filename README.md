@@ -9,7 +9,7 @@ Nasceu como trabalho final de **ICC041 (UFAM)** e foi usado de verdade durante a
 
 **Estado em uma linha:** bolão, comunidades e o grafo de confrontos estão implementados e testados nas regras puras; as propostas de grafos 4 e 5 e o redesign do frontend **não** estão prontos. Detalhes abaixo.
 
-🔗 App: [grafolao-2026-frontend.vercel.app](https://grafolao-2026-frontend.vercel.app) *(link informado pelo mantenedor; não verificado se segue no ar)*
+🔗 App: [grafolao-2026-frontend.vercel.app](https://grafolao-2026-frontend.vercel.app)
 
 ---
 
@@ -182,3 +182,74 @@ npm run test:coverage   # testes + cobertura
 - **Lint do frontend:** 24 erros e 3 avisos herdados (reconferido em 2026-11-13). Por isso o job de lint não bloqueia; a meta é zerá-los e passar a exigir o job.
 
 ---
+
+## Dados abertos e privacidade
+
+A pasta [`data/`](./data) traz a exportação anonimizada usada nas análises (gerada por [`exportar-dados-anonimizados.ts`](./apps/backend/src/script/exportar-dados-anonimizados.ts)). Contagens atuais dos arquivos (verificadas executando):
+
+| Arquivo | Linhas de dados |
+|---|---|
+| `usuarios_anonimizados.csv` | 198 |
+| `palpites_anonimizados.csv` | 4.181 |
+| `jogos.csv` | 104 |
+| `confrontos_anonimizados.csv` | 14.188 |
+
+Esses números vêm do export. `confrontos_anonimizados.csv` tem um confronto por linha (um par de participantes em um jogo, `peso` = 1), **não** as arestas já agregadas: a agregação por saldo (3.235 arestas) é feita sobre ele.
+
+**Pseudonimização:** nomes, e-mails e identificadores foram trocados por `user1…N`. A tabela que liga o pseudônimo à pessoa real **nunca é versionada** (`data/_privado/` está no `.gitignore`). Os participantes não consentiram com a publicação de dados pessoais; por isso a exportação só contém pseudônimos.
+
+**Risco residual de reidentificação, dito de forma factual:**
+
+- `usuarios_anonimizados.csv` traz a data e hora de cadastro de cada conta, com precisão de milissegundos.
+- A numeração dos pseudônimos segue a ordem de cadastro (`user1` é o cadastro mais antigo e `user198` o mais recente).
+- Quem souber quando uma pessoa se cadastrou, ou a posição dela na ordem de entrada, pode ligá-la ao pseudônimo. Os palpites e a pontuação de cada pseudônimo também são públicos.
+
+Se você se reconhece nos dados e quer a remoção, abra uma Issue.
+
+---
+
+## Estrutura de pastas
+
+```
+grafolao-2026/
+├── apps/
+│   ├── backend/
+│   │   ├── prisma/                 schema e migrations
+│   │   ├── data/                   calendário e seleções (JSON usados no seed)
+│   │   ├── tests/                  testes Vitest (README próprio)
+│   │   └── src/
+│   │       ├── db/                 cliente Prisma e seed
+│   │       ├── modules/            admin, auth, comunidade, grafo-confrontos, jogadores,
+│   │       │                       jogos, palpites, palpites-especiais, push, ranking, times
+│   │       ├── script/             exportação anonimizada e recálculo de confrontos
+│   │       ├── shared/             middleware de auth e utilitários
+│   │       ├── scheduler.ts        lembretes push
+│   │       └── server.ts
+│   └── frontend/
+│       └── src/                    components/, hooks/, pages/, lib/, types/
+├── packages/types/                 tipos compartilhados
+├── data/                           CSVs anonimizados e README dos dados
+├── .github/workflows/ci.yml
+├── docker-compose.yml
+└── LICENSE
+```
+
+O banco tem 19 modelos no Prisma. Três deles (`EstadoRodada`, `AcertoCompartilhado`, `CliqueSnapshot`) existem no schema e na migration, mas **nenhum código os usa**; são reservas para as propostas ainda não implementadas. Não existem módulos `grafo-dag` nem `grafo-cliques`.
+
+---
+
+## Roadmap
+
+1. Testes dos services contra um banco e reprodução completa dos números do grafo a partir de `data/`.
+2. Correção e análise do PageRank com invicto.
+3. Redesign do frontend e, depois, testes E2E.
+4. Zerar os erros de lint e exigir o job de lint no CI.
+5. Proposta 4 (Caminho Mínimo para o Título): modelagem ainda em decisão.
+6. Proposta 5 (Cliques e Panelinhas): começar por cliques na projeção; um trabalho antigo e incompleto está arquivado em uma branch de arquivo e não faz parte do código atual.
+7. Análise estatística dos dados com modelo nulo.
+
+Contato: abra uma [Issue](https://github.com/ufam-grafolao/grafolao-2026/issues).
+
+## Licença
+
+[MIT](./LICENSE)

@@ -44,5 +44,3 @@ independente do pipeline de agregação.
 Os números resultantes devem corresponder à Tabela 1 do artigo: 197
 participantes, 3.235 confrontos, 1.228 ciclos detectados no grafo
 completo (dados equivalentes para a versão filtrada, `k \geq 10` palpites).
-
-Código-fonte da implementação: [link do repositório GitHub — este mesmo repositório]
