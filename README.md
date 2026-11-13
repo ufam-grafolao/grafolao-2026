@@ -116,3 +116,69 @@ Fonte: coleta pós-torneio feita pela API de produção em **2026-08-14**, infor
 - Os services que montam o grafo a partir do banco não têm teste automatizado.
 
 ---
+
+## Arquitetura e stack
+
+Monorepo npm workspaces (`apps/*`, `packages/*`):
+
+```
+Navegador ── React (Vercel) ──HTTP/JWT──▶ Fastify (Render) ──Prisma──▶ PostgreSQL (Supabase)
+                                              │
+                                              ├─ Google OAuth2 (login)
+                                              └─ Web Push (VAPID) + scheduler interno
+```
+
+| Camada | Tecnologias |
+|---|---|
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, TanStack Query v5, Zustand, React Router v7, Sigma.js + Graphology (ForceAtlas2), flag-icons |
+| **Backend** | Fastify v5, TypeScript, Prisma v6, `@fastify/jwt`, `@fastify/oauth2` (Google), `@fastify/rate-limit`, `@fastify/cookie`, web-push |
+| **Dados** | PostgreSQL; Supabase em produção (pooler na porta 6543) e Docker Compose em desenvolvimento |
+| **Qualidade** | Vitest (backend), GitHub Actions, ESLint (frontend) |
+| **Monitoramento** | Sentry no frontend (`@sentry/react`); o backend não tem Sentry |
+
+**Deploy:** frontend na Vercel e backend no Render, a partir da `main`; as demais branches geram preview na Vercel. Só a configuração da Vercel (`apps/frontend/vercel.json`, reescrita de SPA) está no repositório; o restante é **informado pelo mantenedor** e não verificável aqui.
+
+**Dados da Copa:** o calendário vem de arquivos JSON em `apps/backend/data/`, carregados pelo seed (104 jogos). Os resultados são inseridos pelo admin no painel.
+
+---
+
+## Como rodar localmente
+
+Pré-requisitos: Node.js 22+ (os Dockerfiles usam `node:22-alpine`), Docker com Compose e credenciais OAuth do Google Cloud.
+
+```bash
+git clone https://github.com/ufam-grafolao/grafolao-2026.git
+cd grafolao-2026
+cp apps/backend/.env.example apps/backend/.env     # preencha as variáveis
+cp apps/frontend/.env.example apps/frontend/.env   # preencha VITE_API_URL
+docker compose up --build
+docker compose exec backend npx prisma migrate deploy
+docker compose exec backend npm run db:seed
+```
+
+Em desenvolvimento, `DATABASE_URL` e `DIRECT_URL` apontam para o serviço `db` do Compose (ver usuário, senha e banco em [`docker-compose.yml`](./docker-compose.yml)). O `.env.example` do backend lista também `JWT_SECRET`, `GOOGLE_*`, `FRONTEND_URL`, `PORT`, `HOST`, as chaves `VAPID_*` e `PRAZO_PALPITES_ESPECIAIS`. No frontend, `VITE_API_URL` aponta para o backend e `VITE_SENTRY_DSN` é opcional.
+
+| Serviço | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:3333 (health check em `/health`) |
+
+Status de verificação destes comandos: **`docker compose` e `prisma migrate deploy` não foram executados** nesta revisão (exigem credenciais e banco). Foram **executados** com sucesso: `npm run db:generate`, `npm run build --workspace=apps/backend`, `npm run build --workspace=apps/frontend` e `npm run test:coverage --workspace=apps/backend`.
+
+---
+
+## Testes e CI
+
+```bash
+cd apps/backend
+npm test                # 75 testes, 9 arquivos (verificado executando)
+npm run test:coverage   # testes + cobertura
+```
+
+- **O que é coberto:** as regras puras, extraídas dos services para funções sem banco: pontuação de grupos e mata-mata, prazo e limite de edições, arestas do grafo, PageRank, ciclos, caminho mais longo (inclusive `completou=false`) e ordenação cronológica das rodadas. Os testes usam apenas dados sintéticos (`user1`, `user2`, ...). Guia completo em [`apps/backend/tests/README.md`](./apps/backend/tests/README.md).
+- **Cobertura medida** apenas nos arquivos de regras puras que os testes carregam: 98,88% das instruções e 100% das linhas (execução de 2026-11-13). Não é cobertura do backend inteiro.
+- **O que não é coberto:** services e controllers (acesso ao Prisma e HTTP), frontend (sem testes) e fluxos E2E.
+- **CI** ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)), em PRs para `dev` e `main` e em pushes para `dev`: `Backend: build e testes`, `Frontend: build` e `Lint (não bloqueante)`. Segundo o mantenedor, a `main` está protegida e exige o CI (configuração do GitHub, não verificável pelo código).
+- **Lint do frontend:** 24 erros e 3 avisos herdados (reconferido em 2026-11-13). Por isso o job de lint não bloqueia; a meta é zerá-los e passar a exigir o job.
+
+---
