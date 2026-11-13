@@ -67,3 +67,52 @@ Fonte: [`palpites.regras.ts`](./apps/backend/src/modules/palpites/palpites.regra
 **Prazo:** o banco guarda o horário local de Manaus (UTC-4) como se fosse UTC, e o código soma 4 horas para obter o instante real do início. Essa explicação foi inferida do código; não há documentação própria dela.
 
 ---
+
+## Análise em grafos (Proposta 2: grafo de confrontos)
+
+### Modelagem
+
+- **Vértices:** participantes.
+- **Confronto:** em cada jogo encerrado, os participantes que palpitaram são comparados dois a dois. Quem fez **mais pontos** naquele jogo vence o confronto; **empate de pontos não gera relação**.
+- **Aresta:** para cada par, soma-se o saldo de vitórias (vitórias de A sobre B menos vitórias de B sobre A). Só existe aresta **se o saldo for > 0**, direcionada do vencedor líquido para o perdedor, com o saldo como peso.
+- **Núcleo ativo:** o parâmetro `minPalpites=10` restringe o grafo a quem fez pelo menos 10 palpites.
+
+### Algoritmos
+
+Implementados em [`grafo-confrontos.algoritmos.ts`](./apps/backend/src/modules/grafo-confrontos/grafo-confrontos.algoritmos.ts) (funções puras, testadas com grafos pequenos de resultado calculado à mão):
+
+| Algoritmo | Como funciona |
+|---|---|
+| **Ciclos** | DFS com coloração (branco/cinza/preto). Cada aresta de retorno fecha um ciclo; guarda ciclos de tamanho ≥ 3, sem duplicatas (mesmo conjunto de vértices). É a detecção por arestas de retorno da DFS, **não** uma enumeração de todos os ciclos simples |
+| **PageRank** | Iterativo, d = 0,85, tolerância 1e-6, no máximo 100 iterações. O voto é **invertido**: quem perde cede importância a quem vence. Os pesos das arestas não entram no cálculo (o que conta é o grau de saída) |
+| **Caminho mais longo** | Busca exaustiva "anytime" com orçamento de 120 s. Devolve o melhor caminho encontrado, `completou` (se a busca terminou dentro do orçamento) e `tempoMs` |
+
+### Endpoints
+
+`GET /grafos/confrontos` (grafo e PageRank; aceita `rodada` e `minPalpites`), `/grafos/confrontos/ciclos`, `/grafos/confrontos/caminho-mais-longo` e `/grafos/confrontos/evolucao` (PageRank acumulado rodada a rodada, com as rodadas em ordem cronológica). Todos exigem login. No frontend: `/grafos/confrontos`, com visualização em Sigma.js.
+
+### Números
+
+Fonte: coleta pós-torneio feita pela API de produção em **2026-08-14**, informada pelo mantenedor. A base estava viva e os valores variaram entre coletas.
+
+| Métrica | Completo | Filtrado (≥ 10 palpites) |
+|---|---|---|
+| \|V\| | 197 | 72 |
+| \|E\| | 3.235 | 1.612 |
+| Densidade | 8,38% | 31,53% |
+| Ciclos | 1.228 | 841 |
+| Caminho mais longo | 85 | 62 |
+
+- **O caminho mais longo teve `completou=false` nos dois casos:** os valores são o melhor caminho parcial encontrado em 120 s, **não** o ótimo.
+- Conferido hoje contra os CSVs de [`data/`](./data) (verificado executando um script de contagem): \|E\| = 3.235 e 1.612, 72 participantes com ≥ 10 palpites e as densidades (arestas ÷ n(n−1)) batem. Esses são os únicos números conferidos.
+- **Ciclos e caminho mais longo não foram reproduzidos** a partir dos CSVs. A reprodução completa ainda não foi feita.
+- Os CSVs trazem 198 usuários, dos quais 154 têm ao menos um palpite; o \|V\| = 197 da coleta de produção não foi reconciliado com esses números.
+
+### Limitações conhecidas
+
+- **PageRank com invicto:** o algoritmo não redistribui a massa de quem nunca perdeu, então a soma dos valores fica abaixo de 1 quando há invicto. Há teste que registra esse comportamento; **não foi corrigido** e o efeito na ordem do ranking não foi analisado.
+- Os pesos das arestas não participam do PageRank (ver acima).
+- Sem modelo nulo, não se pode afirmar que a estrutura observada (ciclos, caminhos) difere do acaso.
+- Os services que montam o grafo a partir do banco não têm teste automatizado.
+
+---
