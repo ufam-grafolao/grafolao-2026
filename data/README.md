@@ -25,22 +25,25 @@ anonimização é uma condição obrigatória desta exportação, não uma opç�
 | `usuarios_anonimizados.csv` | Pseudônimo de cada participante e data de criação da conta. |
 | `jogos.csv` | Calendário completo da competição: times, fase, data, placar oficial. Dados públicos, sem alteração. |
 | `palpites_anonimizados.csv` | Cada palpite registrado: usuário (pseudônimo), jogo, placar previsto, pontuação obtida. |
-| `confrontos_anonimizados.csv` | Arestas do grafo de confrontos já agregadas: para cada par de participantes com saldo positivo, o vencedor, o perdedor e o peso (saldo de vitórias). |
+| `confrontos_anonimizados.csv` | Um confronto por linha (14.188 linhas): em um jogo, o participante que fez mais pontos (`vencedorId`) e o que fez menos (`perdedorId`), com `peso` = 1. **Não** são as arestas agregadas. |
 
 ## Reprodução
 
-`confrontos_anonimizados.csv` já reflete a agregação descrita na Seção de
-Modelagem do artigo (saldo de vitórias entre cada par de participantes) e
-pode ser usado diretamente para reproduzir os três algoritmos: detecção de
-ciclos (DFS), PageRank iterativo e busca de caminho mais longo com
-orçamento de tempo.
+`confrontos_anonimizados.csv` traz os confrontos brutos, um por par de
+participantes em cada jogo. As arestas do grafo saem da agregação por saldo:
+para cada par, vitórias de A sobre B menos vitórias de B sobre A; só há aresta
+se o saldo for > 0, do vencedor líquido para o perdedor, com o saldo como peso.
+O grafo filtrado usa apenas participantes com pelo menos 10 palpites.
 
-Alternativamente, é possível reconstruir `confrontos_anonimizados.csv` do
-zero a partir de `palpites_anonimizados.csv` e `jogos.csv`, comparando a
-pontuação de cada par de participantes por partida — o mesmo critério
-usado pelo sistema em produção. Essa via mais longa serve como verificação
-independente do pipeline de agregação.
+Conferido sobre estes CSVs (contagem, 2026-11-13): 3.235 arestas no grafo
+completo e 1.612 no filtrado, com 72 participantes com ≥ 10 palpites.
 
-Os números resultantes devem corresponder à Tabela 1 do artigo: 197
-participantes, 3.235 confrontos, 1.228 ciclos detectados no grafo
-completo (dados equivalentes para a versão filtrada, `k \geq 10` palpites).
+Ainda **não** foram reproduzidos a partir destes arquivos: os ciclos (1.228 e
+841), o caminho mais longo (85 e 62, ambos com `completou=false` na coleta de
+produção) e o PageRank. O número de vértices da coleta de produção (197) não
+foi reconciliado com estes CSVs: eles têm 198 usuários, 154 com ao menos um
+palpite e 139 presentes em arestas.
+
+Os números de produção foram coletados em 2026-08-14, com a base ainda viva,
+e podem variar entre coletas. Os arquivos não trazem rótulo de fase de grupo
+ou mata-mata nos confrontos; ver `jogos.csv` para o calendário.
