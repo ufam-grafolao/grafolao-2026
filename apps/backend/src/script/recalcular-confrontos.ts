@@ -8,8 +8,17 @@
  * anteriores foram encerrados antes da construção automática de confrontos
  * existir no fluxo de inserirResultado.
  *
- * Uso:
- *   npx tsx src/scripts/recalcular-confrontos.ts
+ * Desde a regra da ausência, as rotas /grafos/confrontos NÃO leem mais a tabela
+ * Confronto: o grafo é construído na leitura a partir dos palpites dos jogos
+ * encerrados (arestasDeConfrontos). A tabela fica só como histórico, e este
+ * script não é necessário para o grafo ficar correto.
+ *
+ * Contexto: nos dados exportados em 2026-08-14, 53 dos 104 jogos encerrados não
+ * tinham confrontos gravados. Rodar este script em produção os criaria; isso não
+ * muda mais o grafo servido pela API, só o histórico.
+ *
+ * Uso (a partir de apps/backend):
+ *   npx tsx src/script/recalcular-confrontos.ts
  */
 
 import prisma from '../db/prisma.js'

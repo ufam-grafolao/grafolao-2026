@@ -1,4 +1,5 @@
 import type { ResultadoCaminhoMaisLongo } from './grafo-confrontos.schema.js'
+import { inicioRealDoJogo } from '../palpites/palpites.regras.js'
 
 // Algoritmos de grafo puros (sem Prisma): recebem vértices e arestas e devolvem resultados.
 // Ficam separados do service para poderem ser testados com grafos pequenos, sem banco.
@@ -252,4 +253,143 @@ export function agregarSaldo(
   }
 
   return agregados
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// REGRA DA AUSÊNCIA (decisão da orientadora)
+//
+// Num jogo ENCERRADO, é AUSENTE quem não palpitou nele e já estava cadastrado
+// antes do início do jogo. O ausente perde para todos que palpitaram, inclusive
+// para quem fez 0 pontos. Ausentes não se confrontam entre si. Quem se cadastrou
+// no início do jogo ou depois não é penalizado: fica fora do confronto daquele jogo.
+//
+// O início do jogo usa a mesma conversão de horário do bloqueio de palpites
+// (inicioRealDoJogo, +4h), para que "não palpitou a tempo" e "já estava
+// cadastrado" falem do mesmo instante.
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface UsuarioCadastro {
+  id: string
+  criadoEm: Date
+}
+
+/** Ausentes de um jogo, na ordem em que aparecem em `usuarios`. */
+export function identificarAusentes(
+  jogo: { dataHora: Date },
+  palpiteiroIds: Iterable<string>,
+  usuarios: UsuarioCadastro[]
+): string[] {
+  const inicio = inicioRealDoJogo(jogo.dataHora).getTime()
+  const palpitou = new Set(palpiteiroIds)
+
+  return usuarios
+    .filter(u => !palpitou.has(u.id) && new Date(u.criadoEm).getTime() < inicio)
+    .map(u => u.id)
+}
+
+/**
+ * Confrontos de ausência de um jogo: cada palpiteiro vence cada ausente.
+ * O palpiteId é o do vencedor, como nos confrontos entre palpites.
+ */
+export function gerarConfrontosDeAusencia(
+  jogo: { dataHora: Date },
+  palpites: { id: string; usuarioId: string }[],
+  usuarios: UsuarioCadastro[]
+): { vencedorId: string; perdedorId: string; palpiteId: string }[] {
+  const ausentes = identificarAusentes(jogo, palpites.map(p => p.usuarioId), usuarios)
+  const confrontos: { vencedorId: string; perdedorId: string; palpiteId: string }[] = []
+
+  for (const palpite of palpites) {
+    for (const ausente of ausentes) {
+      confrontos.push({ vencedorId: palpite.usuarioId, perdedorId: ausente, palpiteId: palpite.id })
+    }
+  }
+
+  return confrontos
+}
+
+/**
+ * Confrontos de ausência de vários jogos encerrados.
+ * Só considera jogos com pelo menos um palpite (sem palpiteiro não há quem vença).
+ */
+export function gerarConfrontosDeAusenciaDosJogos(
+  jogos: { id: string; dataHora: Date }[],
+  palpites: { id: string; usuarioId: string; jogoId: string }[],
+  usuarios: UsuarioCadastro[]
+): { jogoId: string; vencedorId: string; perdedorId: string; palpiteId: string }[] {
+  const palpitesPorJogo = new Map<string, { id: string; usuarioId: string }[]>()
+  for (const p of palpites) {
+    const lista = palpitesPorJogo.get(p.jogoId) ?? []
+    lista.push(p)
+    palpitesPorJogo.set(p.jogoId, lista)
+  }
+
+  const confrontos: { jogoId: string; vencedorId: string; perdedorId: string; palpiteId: string }[] = []
+  for (const jogo of jogos) {
+    const doJogo = palpitesPorJogo.get(jogo.id) ?? []
+    if (doJogo.length === 0) continue
+    for (const c of gerarConfrontosDeAusencia(jogo, doJogo, usuarios)) {
+      confrontos.push({ jogoId: jogo.id, ...c })
+    }
+  }
+  return confrontos
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// GRAFO A PARTIR DOS PALPITES
+//
+// As arestas são construídas na leitura a partir dos palpites dos jogos
+// ENCERRADOS (e não da tabela Confronto, que ficou só como histórico: na
+// exportação de 2026-08-14, 53 dos 104 jogos encerrados não tinham confrontos
+// gravados). Para cada jogo: confrontos entre palpites (gerarConfrontosDoJogo)
+// e, se pedido, confrontos de ausência. Depois, saldo por par (agregarSaldo).
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface BaseConfrontos {
+  /** Só jogos ENCERRADOS: quem chama filtra pelo status. */
+  jogos: { id: string; rodada: string; dataHora: Date }[]
+  palpites: { id: string; usuarioId: string; jogoId: string; pontos: number }[]
+  usuarios: UsuarioCadastro[]
+}
+
+export interface OpcoesArestas {
+  /** Rodadas consideradas (uma ou várias, para o grafo acumulado). undefined = todas. */
+  rodadas?: Iterable<string>
+  /** Recorte de participantes (minPalpites): as duas pontas precisam estar dentro. */
+  idsPermitidos?: Set<string>
+  considerarAusencia: boolean
+}
+
+export function arestasDeConfrontos(base: BaseConfrontos, opcoes: OpcoesArestas): ConfrontoAgregado[] {
+  const rodadas = opcoes.rodadas === undefined ? undefined : new Set(opcoes.rodadas)
+  const permitido = (id: string) => !opcoes.idsPermitidos || opcoes.idsPermitidos.has(id)
+
+  const jogos = base.jogos.filter(j => !rodadas || rodadas.has(j.rodada))
+  const idsJogos = new Set(jogos.map(j => j.id))
+  const usuarios = base.usuarios.filter(u => permitido(u.id))
+
+  const palpitesPorJogo = new Map<string, BaseConfrontos['palpites']>()
+  for (const p of base.palpites) {
+    if (!idsJogos.has(p.jogoId) || !permitido(p.usuarioId)) continue
+    const lista = palpitesPorJogo.get(p.jogoId)
+    if (lista) lista.push(p)
+    else palpitesPorJogo.set(p.jogoId, [p])
+  }
+
+  // push um a um (e não push(...lista)): com a ausência são centenas de milhares de
+  // confrontos, e espalhá-los como argumentos estoura a pilha.
+  const brutos: { vencedorId: string; perdedorId: string }[] = []
+  for (const jogo of jogos) {
+    const doJogo = palpitesPorJogo.get(jogo.id) ?? []
+    for (const c of gerarConfrontosDoJogo(doJogo)) brutos.push(c)
+    if (opcoes.considerarAusencia && doJogo.length > 0) {
+      for (const c of gerarConfrontosDeAusencia(jogo, doJogo, usuarios)) brutos.push(c)
+    }
+  }
+
+  // Ordem fixa (por id): detecção de ciclos e caminho mais longo dependem da ordem de visita.
+  return agregarSaldo(brutos).sort(
+    (a, b) => a.vencedorId.localeCompare(b.vencedorId) || a.perdedorId.localeCompare(b.perdedorId)
+  )
 }

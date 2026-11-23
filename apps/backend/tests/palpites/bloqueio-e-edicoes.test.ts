@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { verificarJogoAberto, verificarLimiteEdicoes } from '../../src/modules/palpites/palpites.regras.js'
+import { inicioRealDoJogo, verificarJogoAberto, verificarLimiteEdicoes } from '../../src/modules/palpites/palpites.regras.js'
 
 // Regras de palpite:
 //   1. Só se palpita em jogo com status liberado e antes do início.
@@ -12,6 +12,13 @@ const dataHoraGravada = new Date('2026-06-11T15:00:00.000Z')
 const inicioReal = new Date('2026-06-11T19:00:00.000Z')
 const jogoAgendado = { status: 'AGENDADO', dataHora: dataHoraGravada }
 const msApos = (data: Date, ms: number) => new Date(data.getTime() + ms)
+
+describe('Início real do jogo', () => {
+  it('soma 4 horas ao horário gravado', () => {
+    // Por que: o horário gravado é o de Manaus (UTC-4) salvo como se fosse UTC.
+    expect(inicioRealDoJogo(dataHoraGravada)).toEqual(inicioReal)
+  })
+})
 
 describe('Bloqueio de palpite no início do jogo', () => {
   it('permite palpitar 1 ms antes do início', () => {

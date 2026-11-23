@@ -10,10 +10,18 @@ Este diretório protege as regras que mais importam no Grafolão: **pontuação 
 | Pontuação, mata-mata | `palpites/pontuacao-mata-mata.test.ts` | Cada linha da tabela abaixo, incluindo pênaltis |
 | Prazo e edições | `palpites/bloqueio-e-edicoes.test.ts` | Bloqueio no início do jogo (1 ms antes, exato, 1 ms depois) e limite de 2 edições |
 | Arestas do grafo | `grafo-confrontos/arestas.test.ts` | Quem vence quem num jogo, empate sem aresta, saldo agregado por par |
+| Similaridade entre palpites | `shared/similaridade-palpites.test.ts` | Distância 0 / 0,5 / 1, grafo completo do jogo, distância média agregada |
+| Zebra, MST | `zebra/mst.test.ts` | Kruskal, desempate determinístico, floresta, peso total que só depende de placares e resultados distintos |
+| Zebra, ousadia | `zebra/ousadia.test.ts` | Média, mediana e raridade à mão, Índice de Zebra (soma e média), ousados que acertaram, Spearman |
 | PageRank | `grafo-confrontos/pagerank.test.ts` | Soma 1 em grafo sem sorvedouro, ordem esperada e o comportamento atual com invicto |
+| Grafo a partir dos palpites | `grafo-confrontos/grafo-dos-palpites.test.ts` | Arestas com e sem ausência, filtro por rodada e por recorte, ordem estável |
+| Regra da ausência | `grafo-confrontos/ausencia.test.ts` | Quem é ausente (cadastro antes do início real, +4h), ausente perde para todo palpiteiro, ausentes não se enfrentam, efeito no saldo |
 | Ciclos | `grafo-confrontos/ciclos.test.ts` | Ciclos conhecidos em grafos pequenos e deduplicação |
 | Caminho mais longo | `grafo-confrontos/caminho-mais-longo.test.ts` | Ótimo conhecido e `completou=false` quando o orçamento acaba |
+| Panelinhas, similaridade | `panelinhas/similaridade.test.ts` | O que é acerto (inclusive ACERTO_BONUS), pesos de acertos em comum, filtro de jogos óbvios, limiar por percentil |
+| Panelinhas, cliques | `panelinhas/cliques.test.ts` | Cliques maximais em grafos à mão, ordem de degenerescência, `completou=false`, conferência contra força bruta |
 | Ordem das rodadas | `shared/ordenar-rodadas.test.ts` | Rodadas em ordem cronológica: "Matchday 2" antes de "Matchday 10" e mata-mata depois dos grupos |
+| Query string | `shared/query.test.ts` | Parâmetros booleanos (`considerarAusencia`) com padrão seguro |
 | Configuração | `smoke.test.ts` | O Vitest roda TypeScript e importa módulos do backend |
 
 **Por que unitários e sem banco:** as regras ficam em funções puras, que recebem dados e devolvem decisões. Elas foram separadas dos services (que falam com o Prisma) em:
