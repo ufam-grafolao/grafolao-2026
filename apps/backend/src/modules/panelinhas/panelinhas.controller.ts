@@ -17,7 +17,9 @@ type Query = {
 function lerParametros(q: Query): ParametrosPanelinhas {
   return {
     rodada: q.rodada || undefined,
-    minPalpites: lerNumero(q.minPalpites, 0, { minimo: 0 }),
+    // Padrão 10: sem o recorte, o percentil é puxado por quem palpitou poucos jogos
+    // (ver analise/resultados/panelinhas.md). ?minPalpites=0 inclui todos.
+    minPalpites: lerNumero(q.minPalpites, 10, { minimo: 0 }),
     percentil: lerNumero(q.percentil, PERCENTIL_PADRAO, { minimo: 0, maximo: 100 }),
     excluirAcimaDe: lerNumeroOpcional(q.excluirAcimaDe, { minimo: 0, maximo: 1 }),
     incluirBonus: lerBooleano(q.incluirBonus, true),
@@ -26,7 +28,7 @@ function lerParametros(q: Query): ParametrosPanelinhas {
   }
 }
 
-// ─── GET /grafos/panelinhas?rodada=Matchday%2010&minPalpites=10&percentil=90 ───
+// ─── GET /grafos/panelinhas?rodada=Matchday%2010&percentil=90 (minPalpites padrão 10) ───
 
 export async function panelinhasController(
   request: FastifyRequest<{ Querystring: Query }>,
