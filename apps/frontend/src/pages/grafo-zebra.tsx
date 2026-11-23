@@ -125,7 +125,7 @@ function SecaoRanking({ linhas, carregando, jogos }: { linhas: LinhaRankingZebra
                       <td className="py-2.5 pr-2 font-display text-lg font-bold">
                         <span className="inline-flex items-center gap-1.5">
                           {l.posicao}
-                          {top && <span className="size-2 rounded-full bg-gold ring-1 ring-gold-foreground/30" aria-hidden />}
+                          {top && <span className="size-2.5 rounded-full bg-gold ring-1 ring-gold-foreground/70 dark:ring-0" aria-hidden />}
                         </span>
                         {top && <span className="sr-only"> (top {TOP})</span>}
                       </td>
