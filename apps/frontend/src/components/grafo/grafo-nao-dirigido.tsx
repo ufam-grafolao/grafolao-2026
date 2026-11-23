@@ -224,6 +224,7 @@ export function GrafoNaoDirigido({
       minCameraRatio: 0.12,
       maxCameraRatio: 3,
       stagePadding: estreito ? 56 : 36,
+      allowInvalidContainer: true, // painel oculto ou redimensionando (tela cheia, captura) não derruba a página
       nodeReducer: (node, data) => {
         const g = grupoRef.current
         const base = (data.corBase as string) ?? COR.no

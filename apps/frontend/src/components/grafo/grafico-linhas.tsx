@@ -101,7 +101,7 @@ export function GraficoLinhas({ rotulosX, series, faixaInicial, avisos, titulo, 
                 y={MARGEM.topo}
                 width={Math.max(0, x(faixaInicial.fim - 1) - MARGEM.esquerda + (n > 1 ? w / (n - 1) / 2 : 0))}
                 height={h}
-                className="fill-muted"
+                className="fill-foreground/[0.07]"
               />
             </g>
           )}
@@ -167,7 +167,7 @@ export function GraficoLinhas({ rotulosX, series, faixaInicial, avisos, titulo, 
 
       {faixaInicial && faixaInicial.fim > 0 && (
         <figcaption className="flex items-start gap-2 text-sm text-muted-foreground">
-          <span className="mt-1 size-3 shrink-0 rounded-sm bg-muted ring-1 ring-border" aria-hidden />
+          <span className="mt-1 size-3 shrink-0 rounded-sm bg-foreground/[0.07] ring-1 ring-border" aria-hidden />
           {faixaInicial.nota}
         </figcaption>
       )}

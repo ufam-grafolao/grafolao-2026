@@ -121,9 +121,12 @@ function SecaoRanking({ linhas, carregando, jogos }: { linhas: LinhaRankingZebra
                 {visiveis.map((l) => {
                   const top = l.posicao <= TOP
                   return (
-                    <tr key={l.usuarioId} className={`border-b border-border last:border-0 ${top ? 'bg-gold/15' : ''}`}>
+                    <tr key={l.usuarioId} data-top={top || undefined} className={`border-b border-border last:border-0 ${top ? 'bg-gold/10 dark:bg-gold/[0.06]' : ''}`}>
                       <td className="py-2.5 pr-2 font-display text-lg font-bold">
-                        {l.posicao}
+                        <span className="inline-flex items-center gap-1.5">
+                          {l.posicao}
+                          {top && <span className="size-2 rounded-full bg-gold ring-1 ring-gold-foreground/30" aria-hidden />}
+                        </span>
                         {top && <span className="sr-only"> (top {TOP})</span>}
                       </td>
                       <td className="max-w-0 truncate py-2.5 pr-2 font-medium">{l.nome}</td>
@@ -245,11 +248,12 @@ function SecaoArvore({ linhas }: { linhas: LinhaRankingZebra[] }) {
                 { marca: <MarcaNo cor={COR_GRAFO.noDestaque} />, texto: <><span className="text-grafo-texto">Top {TOP}</span> do Índice de Zebra</> },
                 { marca: <MarcaTamanho />, texto: 'Tamanho do nó = índice médio' },
                 { marca: <MarcaLinha cor={COR_GRAFO.rotulo} />, texto: 'Linha mais curta e forte = palpites mais parecidos' },
-                { marca: <span className="w-3 shrink-0 text-center font-bold text-grafo-texto" aria-hidden>0</span>, texto: 'mesmo placar' },
-                { marca: <span className="w-3 shrink-0 text-center font-bold text-grafo-texto" aria-hidden>½</span>, texto: 'mesmo resultado, placar diferente' },
-                { marca: <span className="w-3 shrink-0 text-center font-bold text-grafo-texto" aria-hidden>1</span>, texto: 'resultado diferente' },
+                {
+                  marca: <span className="w-3 shrink-0 text-center font-bold text-grafo-texto" aria-hidden>d</span>,
+                  texto: <>Distância: <span className="text-grafo-texto">0</span> mesmo placar, <span className="text-grafo-texto">0,5</span> mesmo resultado, <span className="text-grafo-texto">1</span> resultado diferente</>,
+                },
               ]}
-              dicaLegenda="Distância de um par = média nos jogos em comum. Há empates; a árvore usa um desempate fixo, então outra árvore com o mesmo total também seria mínima."
+              dicaLegenda="Par = média nos jogos em comum. Há empates: com outro desempate, outra árvore de mesmo total também seria mínima."
             />
           )}
         </PainelGrafo>
