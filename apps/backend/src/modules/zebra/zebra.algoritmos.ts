@@ -118,10 +118,11 @@ export function ousadiaNoJogo(
 //
 //   indice      = Σ_jogos ousadia × pontos           (soma, NÃO normalizada)
 //   indiceMedio = indice / jogos palpitados           (média por jogo palpitado)
-// A soma premia quem palpita muito e acerta contra a maioria; a média deixa
-// comparar quem palpitou pouco, mas um único acerto ousado pode dominá-la. Por isso
-// as duas saem na resposta; a ordenação padrão é pela soma, e minPalpites controla
-// quem entra no ranking. Jogos com um só palpiteiro contribuem 0.
+// As duas saem na resposta. A ordenação padrão é pela MÉDIA: nos CSVs de 2026-08-14
+// a soma acompanha quase só o volume (Spearman ≈ 0,92–0,95 com jogos palpitados,
+// analise/resultados/zebra.md), ou seja, mede quem palpitou mais, não quem foi zebra.
+// A média tem o problema oposto (um único acerto ousado domina), por isso o ranking
+// usa minPalpites (padrão 10 na rota). Jogos com um só palpiteiro contribuem 0.
 
 export interface PalpiteJogo extends PalpiteComPlacar {
   jogoId: string
@@ -142,7 +143,7 @@ export type OrdemZebra = 'soma' | 'media'
 export function indiceDeZebra(
   palpites: PalpiteJogo[],
   metrica: MetricaOusadia = 'media',
-  ordem: OrdemZebra = 'soma'
+  ordem: OrdemZebra = 'media'
 ): LinhaZebra[] {
   const porJogo = new Map<string, PalpiteJogo[]>()
   for (const p of palpites) porJogo.set(p.jogoId, [...(porJogo.get(p.jogoId) ?? []), p])
