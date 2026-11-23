@@ -1,48 +1,58 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { ChevronDown, RefreshCw, Route, X } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { GrafoCanvas } from '@/components/grafo-confrontos/grafo-canvas'
+import { GrafoCanvas, type GrafoCanvasHandle } from '@/components/grafo-confrontos/grafo-canvas'
+import { DetalheParticipante, ListaTop } from '@/components/grafo-confrontos/painel-participante'
+import { BuscaParticipante } from '@/components/grafo-confrontos/busca-participante'
+import { PainelGrafo } from '@/components/grafo/painel-grafo'
+import { GradeMetricas } from '@/components/grafo/cartao-metrica'
+import { ControleSegmentado } from '@/components/grafo/controle-segmentado'
+import { GavetaDetalhes } from '@/components/grafo/gaveta-detalhes'
+import { LimiteDeErroGrafo, PainelCarregando, PainelVazio } from '@/components/grafo/estados-grafo'
+import { movimentoReduzido } from '@/lib/grafo-visual'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useGrafoConfrontos, useCiclosConfrontos, useCaminhoMaisLongo } from '@/hooks/use-grafo-confrontos'
-import type { ArestaGrafo, CicloResponse, NoGrafo } from '@/types/grafo-confrontos'
-import { RefreshCw } from 'lucide-react'
+import type { CicloResponse, NoGrafo } from '@/types/grafo-confrontos'
 
-function AvatarMini({ nome, avatarUrl }: { nome: string; avatarUrl: string | null }) {
-  const [erro, setErro] = useState(false)
-  if (avatarUrl && !erro) {
-    return <img src={avatarUrl} alt={nome} className="h-9 w-9 rounded-full object-cover shrink-0" onError={() => setErro(true)} />
-  }
-  return (
-    <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
-      {nome.charAt(0).toUpperCase()}
-    </div>
-  )
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-card px-4 py-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-xl font-bold">{value}</p>
-    </div>
-  )
-}
-
-function obterConfrontosDoNo(noId: string, arestas: ArestaGrafo[], nos: NoGrafo[]) {
-  const nomePorId = new Map(nos.map(n => [n.id, n.nome]))
-  const vitorias = arestas
-    .filter(a => a.origem === noId)
-    .map(a => ({ nome: nomePorId.get(a.destino) ?? a.destino, peso: a.peso }))
-    .sort((a, b) => b.peso - a.peso)
-  const derrotas = arestas
-    .filter(a => a.destino === noId)
-    .map(a => ({ nome: nomePorId.get(a.origem) ?? a.origem, peso: a.peso }))
-    .sort((a, b) => b.peso - a.peso)
-  return { vitorias, derrotas }
-}
+const ALTURA_PAINEL = 'h-[27rem] sm:h-[clamp(26rem,66vh,42rem)]'
 
 export default function GrafoConfrontosPage() {
   const [minPalpites, setMinPalpites] = useState(10)
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-[60ch]">
+          <h1 className="text-5xl leading-[0.95] sm:text-6xl">Grafo de Confrontos</h1>
+          <p className="mt-2 text-muted-foreground">
+            Cada seta liga quem levou a melhor no saldo de confrontos diretos a quem ficou atrás.
+          </p>
+        </div>
+        <ControleSegmentado
+          rotulo="Recorte do grafo"
+          valor={minPalpites}
+          onChange={setMinPalpites}
+          opcoes={[
+            { valor: 10, rotulo: 'Núcleo ativo', detalhe: '10 palpites ou mais' },
+            { valor: 0, rotulo: 'Grafo completo', detalhe: 'todos os participantes' },
+          ]}
+        />
+      </header>
+
+      {/* Uma falha da API aparece aqui dentro; cabeçalho e navegação continuam na tela */}
+      <LimiteDeErroGrafo key={minPalpites} titulo="Não foi possível carregar o grafo">
+        <ConteudoGrafo minPalpites={minPalpites} onVerCompleto={() => setMinPalpites(0)} />
+      </LimiteDeErroGrafo>
+    </div>
+  )
+}
+
+function ConteudoGrafo({ minPalpites, onVerCompleto }: { minPalpites: number; onVerCompleto: () => void }) {
   const [noSelecionado, setNoSelecionado] = useState<NoGrafo | null>(null)
+  const canvasRef = useRef<GrafoCanvasHandle>(null)
+  const painelRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
 
   const grafoQuery = useGrafoConfrontos(minPalpites)
   const ciclosQuery = useCiclosConfrontos(minPalpites)
@@ -52,145 +62,139 @@ export default function GrafoConfrontosPage() {
   const arestas = grafoQuery.data?.arestas ?? []
   const densidade =
     nos.length > 1 ? ((arestas.length / (nos.length * (nos.length - 1))) * 100).toFixed(1) + '%' : '—'
+  const vazio = !grafoQuery.isLoading && nos.length === 0
+
+  const selecionarEFocar = (no: NoGrafo) => {
+    setNoSelecionado(no)
+    canvasRef.current?.focar(no.id)
+  }
+
+  // No celular a gaveta ocupa a metade de baixo: traz o painel para o topo para o foco continuar à vista
+  useEffect(() => {
+    if (isMobile && noSelecionado) {
+      painelRef.current?.scrollIntoView({ block: 'start', behavior: movimentoReduzido() ? 'auto' : 'smooth' })
+    }
+  }, [isMobile, noSelecionado])
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Grafo de Confrontos — Duelo de Palpiteiros</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Cada aresta representa um saldo de confrontos diretos positivo entre dois participantes.
-        </p>
+      <GradeMetricas
+        metricas={[
+          { rotulo: 'Participantes', valor: grafoQuery.isLoading ? null : nos.length.toLocaleString('pt-BR'), explicacao: 'Cada pessoa no recorte é um nó.' },
+          { rotulo: 'Confrontos', valor: grafoQuery.isLoading ? null : arestas.length.toLocaleString('pt-BR'), explicacao: 'Pares em que alguém tem saldo positivo sobre o outro.' },
+          { rotulo: 'Densidade', valor: grafoQuery.isLoading ? null : densidade.replace('.', ','), explicacao: 'Parte das ligações possíveis que existe de fato.' },
+          { rotulo: 'Ciclos', valor: ciclosQuery.isLoading ? null : (ciclosQuery.data?.length.toLocaleString('pt-BR') ?? '—'), explicacao: 'Cadeias em que A vence B, B vence C e C vence A.' },
+        ]}
+      />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <BuscaParticipante nos={nos} onEscolher={selecionarEFocar} />
+        <p className="hidden text-sm text-muted-foreground md:block">Arraste para mover o grafo e role para aproximar.</p>
       </div>
 
-      <div className="flex gap-2">
-        <Button variant={minPalpites === 10 ? 'default' : 'outline'} size="sm" onClick={() => setMinPalpites(10)}>
-          Núcleo ativo (≥10 palpites)
-        </Button>
-        <Button variant={minPalpites === 0 ? 'default' : 'outline'} size="sm" onClick={() => setMinPalpites(0)}>
-          Grafo completo
-        </Button>
-      </div>
-
-      {grafoQuery.isLoading ? (
-        <Skeleton className="h-16 rounded-lg" />
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard label="Participantes (|V|)" value={String(nos.length)} />
-          <StatCard label="Confrontos (|E|)" value={String(arestas.length)} />
-          <StatCard label="Densidade" value={densidade} />
-          <StatCard label="Ciclos detectados" value={ciclosQuery.isLoading ? '...' : String(ciclosQuery.data?.length ?? '—')} />
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
-        <div className="relative h-[560px] rounded-lg border border-border bg-card overflow-hidden">
+      <div className="-mt-2 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <PainelGrafo ref={painelRef} className={`scroll-mt-2 ${ALTURA_PAINEL}`}>
           {grafoQuery.isLoading ? (
-            <Skeleton className="h-full w-full" />
-          ) : grafoQuery.isError ? (
-            <div className="h-full flex items-center justify-center text-sm text-destructive">
-              Erro ao carregar o grafo.
+            <PainelCarregando mensagem="Montando o grafo de confrontos…" />
+          ) : vazio ? (
+            <PainelVazio
+              titulo="Nenhum confronto neste recorte"
+              descricao="Uma seta aparece quando, nos jogos que os dois palpitaram, um participante fez mais pontos que o outro mais vezes do que o contrário."
+              acao={minPalpites > 0 ? { rotulo: 'Ver o grafo completo', onClick: onVerCompleto } : undefined}
+            />
+          ) : (
+            <GrafoCanvas
+              ref={canvasRef}
+              nos={nos}
+              arestas={arestas}
+              selecionadoId={noSelecionado?.id ?? null}
+              onSelecionarNo={setNoSelecionado}
+            />
+          )}
+        </PainelGrafo>
+
+        <aside aria-label="Participante" className="rounded-xl border border-border bg-card p-5 lg:h-[clamp(26rem,66vh,42rem)] lg:overflow-hidden">
+          {grafoQuery.isLoading ? (
+            <div className="flex flex-col gap-3" aria-hidden>
+              <Skeleton className="h-7 w-48 rounded" />
+              <Skeleton className="h-4 w-full rounded" />
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-md" />)}
             </div>
+          ) : vazio ? (
+            <div>
+              <h2 className="font-display text-2xl font-bold leading-tight">Top 5 do PageRank</h2>
+              <p className="mt-1 text-sm text-muted-foreground">O ranking aparece assim que houver confrontos no recorte.</p>
+            </div>
+          ) : noSelecionado && !isMobile ? (
+            <DetalheParticipante
+              no={noSelecionado}
+              nos={nos}
+              arestas={arestas}
+              onSelecionar={setNoSelecionado}
+              onCentralizar={(id) => canvasRef.current?.focar(id)}
+            />
           ) : (
-            <GrafoCanvas nos={nos} arestas={arestas} onSelecionarNo={setNoSelecionado} />
+            <ListaTop nos={nos} onSelecionar={selecionarEFocar} />
           )}
-        </div>
-
-        <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 lg:h-[560px] overflow-y-auto">
-          {noSelecionado ? (
-            <>
-                <div className="flex items-center gap-3">
-                <AvatarMini nome={noSelecionado.nome} avatarUrl={noSelecionado.avatarUrl} />
-                <div className="min-w-0">
-                    <p className="font-semibold text-sm truncate">{noSelecionado.nome}</p>
-                    <p className="text-xs text-muted-foreground">#{noSelecionado.posicao} no PageRank</p>
-                </div>
-                </div>
-                <p className="text-sm">
-                Score: <span className="font-mono">{noSelecionado.pageRank.toFixed(5)}</span>
-                </p>
-
-                {(() => {
-                const { vitorias, derrotas } = obterConfrontosDoNo(noSelecionado.id, arestas, nos)
-                return (
-                    <>
-                    {vitorias.length > 0 && (
-                        <div>
-                        <p className="text-xs font-semibold text-emerald-600 mb-1">Vitórias sobre ({vitorias.length})</p>
-                        <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
-                            {vitorias.map((v, i) => (
-                            <div key={i} className="flex items-center justify-between text-xs gap-2">
-                                <span className="truncate">{v.nome}</span>
-                                <span className="font-mono text-muted-foreground shrink-0">+{v.peso}</span>
-                            </div>
-                            ))}
-                        </div>
-                        </div>
-                    )}
-                    {derrotas.length > 0 && (
-                        <div>
-                        <p className="text-xs font-semibold text-rose-600 mb-1">Derrotas para ({derrotas.length})</p>
-                        <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
-                            {derrotas.map((d, i) => (
-                            <div key={i} className="flex items-center justify-between text-xs gap-2">
-                                <span className="truncate">{d.nome}</span>
-                                <span className="font-mono text-muted-foreground shrink-0">-{d.peso}</span>
-                            </div>
-                            ))}
-                        </div>
-                        </div>
-                    )}
-                    </>
-                )
-                })()}
-
-                <Button variant="outline" size="sm" onClick={() => setNoSelecionado(null)}>Voltar ao Top 5</Button>
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-semibold">Top 5 — PageRank</p>
-              {nos.slice(0, 5).map(n => (
-                <button
-                  key={n.id}
-                  onClick={() => setNoSelecionado(n)}
-                  className="flex items-center gap-2 text-sm text-left hover:bg-muted/50 rounded-md px-1 py-1"
-                >
-                  <span className="w-5 text-center text-muted-foreground font-semibold shrink-0">{n.posicao}</span>
-                  <span className="flex-1 truncate">{n.nome}</span>
-                  <span className="font-mono text-xs text-muted-foreground shrink-0">{n.pageRank.toFixed(4)}</span>
-                </button>
-              ))}
-            </>
-          )}
-        </div>
+        </aside>
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-2">
-        <div className="flex items-center gap-3">
+      {/* Celular: detalhes numa gaveta em meia altura, sem cobrir o foco no grafo */}
+      <GavetaDetalhes aberta={isMobile && !!noSelecionado} onFechar={() => setNoSelecionado(null)} titulo="Detalhes do participante">
+        {noSelecionado && (
+          <DetalheParticipante
+            no={noSelecionado}
+            nos={nos}
+            arestas={arestas}
+            onSelecionar={(no) => (no ? selecionarEFocar(no) : setNoSelecionado(null))}
+            onCentralizar={(id) => canvasRef.current?.focar(id)}
+            mostrarFechar={false}
+          />
+        )}
+      </GavetaDetalhes>
+
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+        <section aria-labelledby="titulo-caminho" className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
+          <div>
+            <h2 id="titulo-caminho" className="font-display text-2xl font-bold leading-tight">Caminho mais longo</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              A maior corrente em que cada participante venceu o seguinte. A busca tem até 10 segundos.
+            </p>
+          </div>
           <Button
             variant="outline"
-            size="sm"
+            className="h-11 self-start border-input px-4"
             onClick={() => caminhoMutation.mutate({ minPalpites, orcamentoMs: 10000 })}
-            disabled={caminhoMutation.isPending}
+            disabled={caminhoMutation.isPending || vazio || grafoQuery.isLoading}
           >
-            {caminhoMutation.isPending ? 'Calculando (até 10s)...' : 'Calcular caminho mais longo'}
+            <Route aria-hidden />
+            {caminhoMutation.isPending ? 'Calculando (até 10s)…' : 'Calcular caminho mais longo'}
           </Button>
-          {caminhoMutation.data && (
-            <span className="text-sm text-muted-foreground">
-              {caminhoMutation.data.tamanho} participantes em{' '}
-              {(caminhoMutation.data.tempoMs / 1000).toFixed(1)}s
-              {!caminhoMutation.data.completou && ' (limite inferior — busca não esgotada)'}
-            </span>
+          {caminhoMutation.isError && (
+            <p role="alert" className="text-sm text-destructive">Não foi possível calcular agora. Tente de novo.</p>
           )}
-        </div>
-        {caminhoMutation.data && (
-          <details className="text-xs text-muted-foreground">
-            <summary className="cursor-pointer">Ver cadeia completa</summary>
-            <p className="mt-1 break-words">{caminhoMutation.data.participantes.join(' → ')}</p>
-          </details>
-        )}
-      </div>
+          {caminhoMutation.data && (
+            <div aria-live="polite">
+              <p className="font-display text-4xl font-bold leading-none tabular-nums">
+                {caminhoMutation.data.tamanho}
+                <span className="ml-1.5 font-sans text-sm font-semibold">participantes</span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                em {(caminhoMutation.data.tempoMs / 1000).toFixed(1).replace('.', ',')}s
+                {!caminhoMutation.data.completou && ' (limite inferior — busca não esgotada)'}
+              </p>
+              <details className="mt-2 text-sm">
+                <summary className="flex min-h-11 cursor-pointer items-center font-medium text-primary">Ver a corrente completa</summary>
+                <p className="mt-1 break-words leading-relaxed text-muted-foreground">{caminhoMutation.data.participantes.join(' → ')}</p>
+              </details>
+            </div>
+          )}
+        </section>
 
-      <SecaoCiclos ciclos={ciclosQuery.data} isLoading={ciclosQuery.isLoading} onRecarregar={() => ciclosQuery.refetch()} />
+        <div className="lg:col-span-2">
+          <SecaoCiclos ciclos={ciclosQuery.data} isLoading={ciclosQuery.isLoading} onRecarregar={() => ciclosQuery.refetch()} />
+        </div>
+      </div>
     </div>
   )
 }
@@ -247,76 +251,89 @@ function SecaoCiclos({
   function toggleParticipante(nome: string) {
     setSelecionados(prev => {
       const next = new Set(prev)
-      next.has(nome) ? next.delete(nome) : next.add(nome)
+      if (next.has(nome)) next.delete(nome)
+      else next.add(nome)
       return next
     })
     setExpandido(false)
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+    <section aria-labelledby="titulo-ciclos" className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold">Ciclos detectados (DFS)</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Grupos de participantes que se vencem mutuamente em cadeia — indicam inconsistência transitiva nos palpites.
+          <h2 id="titulo-ciclos" className="font-display text-2xl font-bold leading-tight">Ciclos detectados</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Grupos que se vencem em cadeia (A vence B, B vence C, C vence A), encontrados por busca em profundidade. Mostram que a relação “levou a melhor” não é transitiva.
           </p>
         </div>
-        <button onClick={onRecarregar} className="text-muted-foreground hover:text-foreground transition-colors" title="Recarregar">
-          <RefreshCw className="cursor-pointer h-4 w-4" />
+        <button
+          type="button"
+          onClick={onRecarregar}
+          className="-mr-2 -mt-1 grid size-11 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground transition-[background-color,color] duration-150 hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+          aria-label="Recarregar ciclos"
+          title="Recarregar"
+        >
+          <RefreshCw className="size-4" aria-hidden />
         </button>
       </div>
 
       {/* Filtro multi-select */}
       {!isLoading && ordenados.length > 0 && (
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative flex flex-wrap items-center gap-2" ref={dropdownRef}>
           <button
+            type="button"
             onClick={() => setAberto(o => !o)}
-            className="cursor-pointer flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors"
+            aria-expanded={aberto}
+            className="flex h-11 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3.5 text-sm transition-[background-color] duration-150 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <span className="text-muted-foreground">Filtrar por participante</span>
             {selecionados.size > 0 && (
-              <span className="bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+              <span className="rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold tabular-nums text-primary-foreground">
                 {selecionados.size}
               </span>
             )}
-            <span className="text-muted-foreground ml-1">{aberto ? '▲' : '▼'}</span>
+            <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-150 ${aberto ? 'rotate-180' : ''}`} aria-hidden />
           </button>
 
           {selecionados.size > 0 && (
             <button
+              type="button"
               onClick={() => setSelecionados(new Set())}
-              className="cursor-pointer ml-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="h-11 cursor-pointer rounded-md px-2 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Limpar
             </button>
           )}
 
           {aberto && (
-            <div className="bg-sidebar absolute top-full left-0 mt-1 z-20 w-64 rounded-md border border-border bg-popover shadow-lg flex flex-col">
-              <div className="p-2 border-b border-border">
+            <div className="absolute left-0 top-full z-20 mt-1 flex w-72 flex-col rounded-md border border-border bg-popover shadow-lg">
+              <div className="border-b border-border p-2">
                 <input
                   autoFocus
                   value={busca}
                   onChange={e => setBusca(e.target.value)}
-                  placeholder="Buscar participante..."
-                  className="w-full rounded-sm border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="Buscar participante…"
+                  aria-label="Buscar participante nos ciclos"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-              <div className="max-h-52 overflow-y-auto">
+              <div className="max-h-64 overflow-y-auto overscroll-contain p-1">
                 {participantesFiltradosBusca.length === 0 ? (
-                  <p className="text-xs text-muted-foreground px-3 py-2">Nenhum resultado.</p>
+                  <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum resultado.</p>
                 ) : (
                   participantesFiltradosBusca.map(nome => (
                     <button
+                      type="button"
                       key={nome}
                       onClick={() => toggleParticipante(nome)}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left hover:bg-muted/50 transition-colors"
+                      aria-pressed={selecionados.has(nome)}
+                      className="flex min-h-11 w-full items-center gap-2.5 rounded-sm px-3 text-left text-sm transition-[background-color] duration-150 hover:bg-secondary"
                     >
-                      <span className={`h-3.5 w-3.5 rounded-sm border shrink-0 flex items-center justify-center ${
-                        selecionados.has(nome) ? 'bg-primary border-primary' : 'border-border'
+                      <span className={`flex size-4 shrink-0 items-center justify-center rounded-sm border ${
+                        selecionados.has(nome) ? 'border-primary bg-primary' : 'border-input'
                       }`}>
-                        {selecionados.has(nome) && <span className="text-primary-foreground text-[9px] leading-none">✓</span>}
+                        {selecionados.has(nome) && <span className="text-[10px] leading-none text-primary-foreground">✓</span>}
                       </span>
                       <span className="truncate">{nome}</span>
                     </button>
@@ -332,12 +349,16 @@ function SecaoCiclos({
       {selecionados.size > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {[...selecionados].map(nome => (
-            <span
-              key={nome}
-              className="flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 text-xs"
-            >
+            <span key={nome} className="flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-3 pr-1 text-sm text-secondary-foreground">
               {nome}
-              <button onClick={() => toggleParticipante(nome)} className="hover:text-primary/60">✕</button>
+              <button
+                type="button"
+                onClick={() => toggleParticipante(nome)}
+                className="grid size-7 place-items-center rounded-full hover:bg-background focus-visible:outline-2 focus-visible:outline-ring"
+                aria-label={`Remover ${nome} do filtro`}
+              >
+                <X className="size-3.5" aria-hidden />
+              </button>
             </span>
           ))}
         </div>
@@ -345,23 +366,23 @@ function SecaoCiclos({
 
       {isLoading ? (
         <div className="flex flex-col gap-2">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8 rounded-md" />)}
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-11 rounded-md" />)}
         </div>
       ) : ordenados.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-2">Nenhum ciclo encontrado no grafo atual.</p>
+        <p className="py-2 text-sm text-muted-foreground">Nenhum ciclo encontrado no grafo atual.</p>
       ) : ciclosFiltrados.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-2">
+        <p className="py-2 text-sm text-muted-foreground">
           Nenhum ciclo contém todos os participantes selecionados simultaneamente.
         </p>
       ) : (
         <>
-          <div className="flex flex-col gap-2">
+          <ol className="flex flex-col divide-y divide-border rounded-md border border-border">
             {visiveis.map((ciclo, i) => (
-              <div key={i} className="rounded-md border border-border px-3 py-2 flex items-start gap-3">
-                <span className="text-xs font-mono bg-muted text-muted-foreground rounded px-1.5 py-0.5 shrink-0 mt-0.5">
+              <li key={i} className="flex items-start gap-3 px-3 py-2.5">
+                <span className="mt-0.5 shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs font-semibold tabular-nums text-secondary-foreground" title="Tamanho do ciclo">
                   {ciclo.tamanho}
                 </span>
-                <p className="text-xs text-foreground/90 wrap-break-word leading-relaxed">
+                <p className="text-sm leading-relaxed wrap-break-word">
                   {ciclo.participantes.map((p, pi) => (
                     <span key={pi}>
                       <span className={selecionados.has(p) ? 'font-semibold text-primary' : ''}>{p}</span>
@@ -370,28 +391,30 @@ function SecaoCiclos({
                   ))}
                   <span className="text-muted-foreground"> → {ciclo.participantes[0]}</span>
                 </p>
-              </div>
+              </li>
             ))}
+          </ol>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground tabular-nums">
+              {selecionados.size > 0
+                ? `${ciclosFiltrados.length} de ${ordenados.length} ciclos`
+                : `${ordenados.length} ciclos no total`}
+            </p>
+            {ciclosFiltrados.length > 5 && (
+              <button
+                type="button"
+                onClick={() => setExpandido(e => !e)}
+                aria-expanded={expandido}
+                className="flex h-11 cursor-pointer items-center gap-1.5 rounded-md px-2 text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {expandido ? 'Mostrar menos' : `Ver mais ${ciclosFiltrados.length - 5} ciclos`}
+                <ChevronDown className={`size-4 transition-transform duration-150 ${expandido ? 'rotate-180' : ''}`} aria-hidden />
+              </button>
+            )}
           </div>
-
-          {ciclosFiltrados.length > 5 && (
-            <button
-              onClick={() => setExpandido(e => !e)}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors text-left"
-            >
-              {expandido
-                ? '▲ Mostrar menos'
-                : `▼ Ver mais ${ciclosFiltrados.length - 5} ciclos`}
-            </button>
-          )}
-
-          <p className="text-xs text-muted-foreground">
-            {selecionados.size > 0
-              ? `${ciclosFiltrados.length} de ${ordenados.length} ciclos`
-              : `${ordenados.length} ciclos no total`}
-          </p>
         </>
       )}
-    </div>
+    </section>
   )
 }
