@@ -73,14 +73,16 @@ async function agregarConfrontos(
     where.perdedorId = { in: ids }
   }
 
-  const confrontos = await prisma.confronto.findMany({
+  const gravados = await prisma.confronto.findMany({
     where,
     select: { vencedorId: true, perdedorId: true },
   })
 
-  if (considerarAusencia) {
-    confrontos.push(...(await confrontosDeAusencia(filtroRodada, idsPermitidos)))
-  }
+  // concat, e não push(...lista): com a regra são centenas de milhares de confrontos,
+  // e espalhar isso como argumentos estoura a pilha ("Maximum call stack size exceeded").
+  const confrontos = considerarAusencia
+    ? gravados.concat(await confrontosDeAusencia(filtroRodada, idsPermitidos))
+    : gravados
 
   // Ordem fixa (por id) para que os algoritmos que dependem da ordem de visita
   // (detecção de ciclos, caminho mais longo) deem sempre o mesmo resultado.
