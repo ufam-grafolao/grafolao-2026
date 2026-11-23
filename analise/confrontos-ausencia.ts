@@ -1,8 +1,8 @@
 /**
  * Grafo de Confrontos com e sem a regra da ausência, a partir dos CSVs de data/.
  *
- * Usa as MESMAS funções puras do backend (gerarConfrontosDoJogo,
- * gerarConfrontosDeAusenciaDosJogos, agregarSaldo, detectarCiclos), com a mesma
+ * Usa as MESMAS funções puras do backend (arestasDeConfrontos, que é o que a API
+ * usa, além de gerarConfrontosDeAusenciaDosJogos, agregarSaldo, detectarCiclos), com a mesma
  * ordem fixa por id do service. |V|, |E| e densidade são os da API sobre os mesmos
  * dados. Os ciclos dependem da ordem dos ids: aqui os ids são pseudônimos (user1…N)
  * e em produção são UUIDs, então a contagem de ciclos pode diferir da API.
@@ -10,8 +10,9 @@
  * Duas bases de jogos (ver docs: 53 dos 104 jogos encerrados não têm confrontos
  * gravados na exportação de 2026-08-14):
  *   A. "publicada": só os jogos cujos confrontos estão em confrontos_anonimizados.csv
- *      (a base da tabela do artigo).
- *   B. "completa": os 104 jogos encerrados, com confrontos regerados dos palpites.
+ *      (a base da tabela do artigo). Só para comparação com o que foi publicado.
+ *   B. "completa": os 104 jogos encerrados, com confrontos gerados dos palpites.
+ *      É exatamente o que a API devolve (arestasDeConfrontos), com e sem a regra.
  *
  * Uso (na raiz do repositório):
  *   npx tsx analise/confrontos-ausencia.ts
@@ -22,6 +23,7 @@ import path from 'node:path'
 import { carregarDados, densidade, pct } from './lib/dados.js'
 import {
   agregarSaldo,
+  arestasDeConfrontos,
   detectarCiclos,
   gerarConfrontosDeAusenciaDosJogos,
   gerarConfrontosDoJogo,
@@ -59,31 +61,38 @@ const recortes = [
   { nome: 'Núcleo ≥10', ids: usuarios.filter(u => (totalPalpites.get(u.id) ?? 0) >= 10).map(u => u.id) },
 ]
 
-for (const base of [
-  { nome: 'A. publicada', jogos: jogosPublicada, brutos: confrontos },
-  { nome: 'B. completa', jogos: encerrados, brutos: encerrados.flatMap(j => gerarConfrontosDoJogo(palpitesPorJogo.get(j.id) ?? [])) },
-]) {
-  for (const recorte of recortes) {
-    const permitido = new Set(recorte.ids)
-    const vertices = [...recorte.ids].sort(porId)
-    const entre = base.brutos.filter(c => permitido.has(c.vencedorId) && permitido.has(c.perdedorId))
-    const ausencia = gerarConfrontosDeAusenciaDosJogos(
-      base.jogos,
-      palpites.filter(p => permitido.has(p.usuarioId)),
-      usuarios.filter(u => permitido.has(u.id))
-    )
+const baseApi = {
+  jogos: encerrados,
+  palpites,
+  usuarios,
+}
 
-    for (const [regra, brutos] of [['sem', entre], ['com', [...entre, ...ausencia]]] as const) {
-      const arestas = ordenarArestas(agregarSaldo(brutos))
-      linhas.push({
-        base: base.nome, recorte: recorte.nome, regra,
-        v: vertices.length,
-        vComAresta: new Set(arestas.flatMap(a => [a.vencedorId, a.perdedorId])).size,
-        e: arestas.length,
-        dens: densidade(vertices.length, arestas.length),
-        ciclos: detectarCiclos(vertices, arestas).length,
-      })
-    }
+for (const recorte of recortes) {
+  const permitido = new Set(recorte.ids)
+  const vertices = [...recorte.ids].sort(porId)
+  const registrar = (base: string, regra: string, arestas: ConfrontoAgregado[]) => linhas.push({
+    base, recorte: recorte.nome, regra,
+    v: vertices.length,
+    vComAresta: new Set(arestas.flatMap(a => [a.vencedorId, a.perdedorId])).size,
+    e: arestas.length,
+    dens: densidade(vertices.length, arestas.length),
+    ciclos: detectarCiclos(vertices, arestas).length,
+  })
+
+  // A. publicada: confrontos gravados (CSV) dos 51 jogos + ausência nesses mesmos jogos.
+  const gravados = confrontos.filter(c => permitido.has(c.vencedorId) && permitido.has(c.perdedorId))
+  const ausenciaA = gerarConfrontosDeAusenciaDosJogos(
+    jogosPublicada,
+    palpites.filter(p => permitido.has(p.usuarioId)),
+    usuarios.filter(u => permitido.has(u.id))
+  )
+  registrar('A. publicada', 'sem', ordenarArestas(agregarSaldo(gravados)))
+  registrar('A. publicada', 'com', ordenarArestas(agregarSaldo(gravados.concat(ausenciaA))))
+
+  // B. completa = API.
+  const idsPermitidos = recorte.nome === 'Completo' ? undefined : permitido
+  for (const regra of ['sem', 'com'] as const) {
+    registrar('B. completa (= API)', regra, arestasDeConfrontos(baseApi, { idsPermitidos, considerarAusencia: regra === 'com' }))
   }
 }
 
@@ -101,6 +110,7 @@ Fonte: \`data/*.csv\` (exportação de produção de 2026-08-14). Gerado por \`a
 
 - Jogos encerrados: ${encerrados.length}. Sem confrontos gravados no CSV: ${semGravacao.length}. Base A usa ${jogosPublicada.length}.
 - Densidade = |E| / (|V|·(|V|−1)), com |V| = todos os usuários do recorte (como na API).
+- A API (desde 2026-11-23) constrói o grafo dos palpites de todos os jogos encerrados: é a base B.
 - Ciclos: contagem da \`detectarCiclos\` (um ciclo por aresta de retorno da DFS), com vértices e arestas em ordem de id. Não é o total de ciclos simples e muda com a ordem.
 - Publicado (coleta de produção de 2026-08-14): completo 197 / 3.235 / 8,38% / 1.228; núcleo 72 / 1.612 / 31,53% / 841.
 
