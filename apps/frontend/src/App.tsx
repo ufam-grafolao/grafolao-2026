@@ -16,8 +16,8 @@ import RankingPage from './pages/ranking'
 import AjudaPage from './pages/ajuda'
 import SobrePage from './pages/sobre'
 import ChaveamentoPage from './pages/chaveamento'
-import { Loader2 } from 'lucide-react'
 import GrafoConfrontosPage from './pages/grafo-confrontos'
+import EmBrevePage from './pages/em-breve'
 
 function GlobalLoading() {
   const isFetching = useIsFetching()
@@ -62,10 +62,10 @@ export default function App() {
             <Route path="/ajuda" element={<AjudaPage />} />
             <Route path="/sobre" element={<SobrePage />} />
             <Route path="/grafos/confrontos" element={<GrafoConfrontosPage/>} />
-            <Route path="/grafos/dag" element={<div>Caminho Mínimo — em breve</div>} />
-            <Route path="/grafos/cliques" element={<div>Cliques e Panelinhas - Comunidades Máximas — em breve</div>} />
-            <Route path="/grafos/mst" element={<div>Aventura da Zebra -  MST da Divergência — em breve</div>} />
-            <Route path="/grafos/redes" element={<div>Redes de Similaridades - Laços de Palpites — em breve</div>} />
+            <Route path="/grafos/dag" element={<EmBrevePage titulo="Caminho Mínimo para o Título" />} />
+            <Route path="/grafos/cliques" element={<EmBrevePage titulo="Cliques e Panelinhas" descricao="Comunidades máximas." />} />
+            <Route path="/grafos/mst" element={<EmBrevePage titulo="Aventura da Zebra" descricao="MST da divergência." />} />
+            <Route path="/grafos/redes" element={<EmBrevePage titulo="Redes de Similaridades" descricao="Laços de palpites." />} />
 
             {/* Rota admin */}
             <Route

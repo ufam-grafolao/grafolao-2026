@@ -540,6 +540,8 @@ export default function AdminPage() {
   const { data: jogosEncerrados, isLoading: loadingEncerrados } = useJogosEncerrados()
 
   return (
+    <div className="flex flex-col gap-4">
+    <h1 className="text-5xl leading-[0.95]">Administração</h1>
     <Tabs defaultValue="pendentes" className="w-full">
       <TabsList variant="line">
         <TabsTrigger value="pendentes">
@@ -605,5 +607,6 @@ export default function AdminPage() {
         <TabNotificacoes />
       </TabsContent>
     </Tabs>
+    </div>
   )
 }

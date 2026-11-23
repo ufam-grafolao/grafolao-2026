@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
-    "@fontsource-variable/geist": "^5.2.9",
+    "@fontsource-variable/public-sans": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
     "@sentry/react": "^10.59.0",
     "@tanstack/react-query": "^5.101.0",
     "axios": "^1.17.0",
@@ -22,7 +23,6 @@
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "lucide-react": "^1.17.0",
-    "next-themes": "^0.4.6",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.17.0",
