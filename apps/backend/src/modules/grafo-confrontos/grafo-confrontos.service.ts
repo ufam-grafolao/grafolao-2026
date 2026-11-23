@@ -12,10 +12,10 @@ import {
   calcularPageRank,
   caminhoMaisLongo,
   detectarCiclos,
-  gerarConfrontosDeAusenciaDosJogos,
+  arestasDeConfrontos,
   gerarConfrontosDoJogo,
 } from './grafo-confrontos.algoritmos.js'
-import type { ConfrontoAgregado } from './grafo-confrontos.algoritmos.js'
+import type { BaseConfrontos, ConfrontoAgregado } from './grafo-confrontos.algoritmos.js'
 import { ordenarRodadasPorData } from '../../shared/utils/ordenar-rodadas.js'
 
 
@@ -45,79 +45,43 @@ export async function construirConfrontosJogo(jogoId: string) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// AGREGAÇÃO — calcula o saldo de confrontos (peso das arestas) a partir
-// dos confrontos brutos por jogo, conforme a Equação 2 do artigo:
-//   w(vi, vj) = vit(vi->vj) - vit(vj->vi)
+// LEITURA — o grafo é construído a partir dos PALPITES dos jogos encerrados
+// (arestasDeConfrontos), e não da tabela Confronto. A tabela continua sendo
+// gravada por construirConfrontosJogo, mas fica só como histórico: na
+// exportação de 2026-08-14, 53 dos 104 jogos encerrados não tinham confrontos
+// gravados, e o grafo lido dela ficava incompleto.
 //
-// Aceita um conjunto opcional de IDs permitidos (idsPermitidos) para
-// restringir a agregação ao subconjunto filtrado de participantes — usado
-// pela análise "com poda" (minPalpites). Sem esse filtro nas duas pontas
-// (vencedorId E perdedorId), arestas envolvendo usuários fora do filtro
-// "contaminariam" o saldo calculado para quem está dentro.
+// O saldo segue a Equação 2 do artigo: w(vi, vj) = vit(vi->vj) - vit(vj->vi).
+// Com minPalpites, as duas pontas precisam estar no recorte; senão arestas com
+// quem está fora "contaminariam" o saldo de quem está dentro.
 // ════════════════════════════════════════════════════════════════════════════
 
+async function carregarBaseConfrontos(): Promise<BaseConfrontos> {
+  const jogos = await prisma.jogo.findMany({
+    where: { status: 'ENCERRADO' },
+    select: { id: true, rodada: true, dataHora: true },
+  })
+  const [palpites, usuarios] = await Promise.all([
+    prisma.palpite.findMany({
+      where: { jogoId: { in: jogos.map(j => j.id) } },
+      select: { id: true, usuarioId: true, jogoId: true, pontos: true },
+    }),
+    prisma.usuario.findMany({ select: { id: true, criadoEm: true } }),
+  ])
+  return { jogos, palpites, usuarios }
+}
 
 async function agregarConfrontos(
-  rodadas: string | string[] | undefined,
+  rodada: string | undefined,
   idsPermitidos: Set<string> | undefined,
   considerarAusencia: boolean
 ): Promise<ConfrontoAgregado[]> {
-  const filtroRodada =
-    rodadas === undefined ? {} : { rodada: Array.isArray(rodadas) ? { in: rodadas } : rodadas }
-
-  const where: Record<string, unknown> = rodadas === undefined ? {} : { jogo: filtroRodada }
-
-  if (idsPermitidos) {
-    const ids = Array.from(idsPermitidos)
-    where.vencedorId = { in: ids }
-    where.perdedorId = { in: ids }
-  }
-
-  const gravados = await prisma.confronto.findMany({
-    where,
-    select: { vencedorId: true, perdedorId: true },
+  const base = await carregarBaseConfrontos()
+  return arestasDeConfrontos(base, {
+    rodadas: rodada === undefined ? undefined : [rodada],
+    idsPermitidos,
+    considerarAusencia,
   })
-
-  // concat, e não push(...lista): com a regra são centenas de milhares de confrontos,
-  // e espalhar isso como argumentos estoura a pilha ("Maximum call stack size exceeded").
-  const confrontos = considerarAusencia
-    ? gravados.concat(await confrontosDeAusencia(filtroRodada, idsPermitidos))
-    : gravados
-
-  // Ordem fixa (por id) para que os algoritmos que dependem da ordem de visita
-  // (detecção de ciclos, caminho mais longo) deem sempre o mesmo resultado.
-  return agregarSaldo(confrontos).sort(
-    (a, b) => a.vencedorId.localeCompare(b.vencedorId) || a.perdedorId.localeCompare(b.perdedorId)
-  )
-}
-
-/**
- * Confrontos de ausência (ver identificarAusentes): não ficam gravados na tabela
- * Confronto, são derivados na leitura a partir de jogos ENCERRADOS, palpites e
- * datas de cadastro. Assim a tabela continua guardando só palpite contra palpite
- * e "sem a regra" segue idêntico ao comportamento anterior.
- */
-async function confrontosDeAusencia(
-  filtroRodada: Record<string, unknown>,
-  idsPermitidos?: Set<string>
-): Promise<{ vencedorId: string; perdedorId: string }[]> {
-  const ids = idsPermitidos ? Array.from(idsPermitidos) : undefined
-
-  const jogos = await prisma.jogo.findMany({
-    where: { status: 'ENCERRADO', ...filtroRodada },
-    select: { id: true, dataHora: true },
-  })
-  const palpites = await prisma.palpite.findMany({
-    where: { jogoId: { in: jogos.map(j => j.id) }, ...(ids ? { usuarioId: { in: ids } } : {}) },
-    select: { id: true, usuarioId: true, jogoId: true },
-  })
-  const usuarios = await prisma.usuario.findMany({
-    where: ids ? { id: { in: ids } } : {},
-    select: { id: true, criadoEm: true },
-  })
-
-  return gerarConfrontosDeAusenciaDosJogos(jogos, palpites, usuarios)
-    .map(({ vencedorId, perdedorId }) => ({ vencedorId, perdedorId }))
 }
 
 
@@ -250,10 +214,12 @@ export async function buscarEvolucaoPorRodada(
   const resultado: EvolucaoRodadaResponse[] = []
 
   const rodadasOrdenadas = ordenarRodadasPorData(jogos).filter(r => rodadasComJogoEncerrado.has(r))
+  // Uma leitura só; cada rodada acumulada é recortada em memória.
+  const base = await carregarBaseConfrontos()
 
   for (let i = 0; i < rodadasOrdenadas.length; i++) {
     const rodadasAcumuladas = rodadasOrdenadas.slice(0, i + 1)
-    const arestasAcumuladas = await agregarConfrontos(rodadasAcumuladas, undefined, considerarAusencia)
+    const arestasAcumuladas = arestasDeConfrontos(base, { rodadas: rodadasAcumuladas, considerarAusencia })
     const pageRankMap = calcularPageRank(vertices, arestasAcumuladas)
 
     const ranking = usuarios

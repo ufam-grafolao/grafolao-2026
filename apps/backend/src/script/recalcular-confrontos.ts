@@ -8,14 +8,14 @@
  * anteriores foram encerrados antes da construção automática de confrontos
  * existir no fluxo de inserirResultado.
  *
- * Regra da ausência: os confrontos de ausência (palpiteiro vence quem não
- * palpitou) NÃO são gravados aqui. Eles são derivados na leitura, em
- * grafo-confrontos.service.ts, a partir de jogos, palpites e datas de cadastro.
- * Por isso não é preciso rodar este script para ativar ou desativar a regra.
+ * Desde a regra da ausência, as rotas /grafos/confrontos NÃO leem mais a tabela
+ * Confronto: o grafo é construído na leitura a partir dos palpites dos jogos
+ * encerrados (arestasDeConfrontos). A tabela fica só como histórico, e este
+ * script não é necessário para o grafo ficar correto.
  *
- * Atenção: nos dados exportados em 2026-08-14, 53 dos 104 jogos encerrados não
- * tinham confrontos gravados. Rodar este script em produção os criaria e mudaria
- * o grafo publicado; é uma decisão do mantenedor, não um passo automático.
+ * Contexto: nos dados exportados em 2026-08-14, 53 dos 104 jogos encerrados não
+ * tinham confrontos gravados. Rodar este script em produção os criaria; isso não
+ * muda mais o grafo servido pela API, só o histórico.
  *
  * Uso (a partir de apps/backend):
  *   npx tsx src/script/recalcular-confrontos.ts
