@@ -1,18 +1,21 @@
-import { Component, ErrorInfo, ReactNode } from 'react'
-import { Button } from '../ui/button'
+import { Component, type ErrorInfo, type ReactNode } from 'react'
 import * as Sentry from '@sentry/react'
+import { ExternalLink } from 'lucide-react'
+import { Button } from '../ui/button'
+import { URL_ISSUES } from '@/lib/links'
 
-export class ErrorBoundary extends Component<
-  { children: ReactNode },
-  { erro: boolean }
-> {
+/**
+ * Última rede de segurança: só aparece se a própria casca do app falhar.
+ * Erros de uma página ficam no limite local de AppLayout (limite-de-erro.tsx).
+ */
+export class ErrorBoundary extends Component<{ children: ReactNode }, { erro: boolean }> {
   state = { erro: false }
 
   static getDerivedStateFromError() {
     return { erro: true }
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo): void {
+  componentDidCatch(error: Error, info: ErrorInfo): void {
     Sentry.captureException(error, {
       extra: {
         componentStack: info.componentStack,
@@ -23,23 +26,27 @@ export class ErrorBoundary extends Component<
   render() {
     if (this.state.erro) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-6">
-          <div className="flex flex-col items-center gap-4 max-w-sm text-center">
-            <p className="text-4xl">😕</p>
-            <p className="text-lg font-semibold">Algo deu errado</p>
-            <p className="text-sm text-muted-foreground">
-              Tente recarregar a página. Se o problema persistir, entre em contato para que possamos resolver:
+        <main className="flex min-h-dvh items-center justify-center p-6">
+          <div role="alert" className="flex max-w-sm flex-col items-center gap-4 text-center">
+            <h1 className="font-display text-4xl font-bold leading-tight">Algo deu errado</h1>
+            <p className="text-muted-foreground">
+              Tente recarregar a página. Se o problema continuar, relate nas Issues do repositório para que possamos resolver.
             </p>
-            <Button className="cursor-pointer" onClick={() => window.location.reload()}>
-              Recarregar página
+            <Button className="h-11 cursor-pointer px-4" onClick={() => window.location.reload()}>
+              Recarregar a página
             </Button>
-            <div className="text-xs text-muted-foreground flex flex-col gap-1 border border-border rounded-lg px-4 py-3 w-full">
-              <span className="font-medium text-foreground mb-1">Reportar problema</span>
-              <a href="tel:+5592982502998" className="hover:text-foreground transition-colors">(92) 98250-2998</a>
-              <a href="mailto:samueldavi.0907@gmail.com" className="hover:text-foreground transition-colors">samueldavi.0907@gmail.com</a>
-            </div>
+            <a
+              href={URL_ISSUES}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-primary underline underline-offset-4 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              Relatar o problema nas Issues do GitHub
+              <ExternalLink className="size-3.5" aria-hidden />
+              <span className="sr-only">(abre em nova aba)</span>
+            </a>
           </div>
-        </div>
+        </main>
       )
     }
     return this.props.children
