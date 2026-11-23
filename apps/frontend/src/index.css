@@ -88,8 +88,8 @@
   --gold:              #FFD60A;       /* reservado: pódio, top 5 e "você" */
   --gold-foreground:   #2B2300;       /* 11,1:1 */
 
-  --border:            #D5E2D8;       /* divisor (decorativo) */
-  --input:             #6A8A75;       /* borda de campo: 3,6:1 (WCAG 1.4.11) */
+  --border:            #B9D9C3;       /* divisor (decorativo), verde para destacar os cartões */
+  --input:             #5A8C6A;       /* borda de campo: 3,7:1 (WCAG 1.4.11) */
   --ring:              #00783A;
   --destructive:       #B42318;       /* 6,6:1 sobre branco */
   --destructive-foreground: #FFFFFF;
@@ -106,7 +106,7 @@
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent:           #E1F1E6;
   --sidebar-accent-foreground: #005B2B;
-  --sidebar-border:           #D5E2D8;
+  --sidebar-border:           #B9D9C3;
   --sidebar-ring:             #00783A;
 
   --radius: 0.375rem;                 /* 6px */
