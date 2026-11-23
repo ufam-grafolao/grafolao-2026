@@ -335,3 +335,61 @@ export function gerarConfrontosDeAusenciaDosJogos(
   }
   return confrontos
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// GRAFO A PARTIR DOS PALPITES
+//
+// As arestas são construídas na leitura a partir dos palpites dos jogos
+// ENCERRADOS (e não da tabela Confronto, que ficou só como histórico: na
+// exportação de 2026-08-14, 53 dos 104 jogos encerrados não tinham confrontos
+// gravados). Para cada jogo: confrontos entre palpites (gerarConfrontosDoJogo)
+// e, se pedido, confrontos de ausência. Depois, saldo por par (agregarSaldo).
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface BaseConfrontos {
+  /** Só jogos ENCERRADOS: quem chama filtra pelo status. */
+  jogos: { id: string; rodada: string; dataHora: Date }[]
+  palpites: { id: string; usuarioId: string; jogoId: string; pontos: number }[]
+  usuarios: UsuarioCadastro[]
+}
+
+export interface OpcoesArestas {
+  /** Rodadas consideradas (uma ou várias, para o grafo acumulado). undefined = todas. */
+  rodadas?: Iterable<string>
+  /** Recorte de participantes (minPalpites): as duas pontas precisam estar dentro. */
+  idsPermitidos?: Set<string>
+  considerarAusencia: boolean
+}
+
+export function arestasDeConfrontos(base: BaseConfrontos, opcoes: OpcoesArestas): ConfrontoAgregado[] {
+  const rodadas = opcoes.rodadas === undefined ? undefined : new Set(opcoes.rodadas)
+  const permitido = (id: string) => !opcoes.idsPermitidos || opcoes.idsPermitidos.has(id)
+
+  const jogos = base.jogos.filter(j => !rodadas || rodadas.has(j.rodada))
+  const idsJogos = new Set(jogos.map(j => j.id))
+  const usuarios = base.usuarios.filter(u => permitido(u.id))
+
+  const palpitesPorJogo = new Map<string, BaseConfrontos['palpites']>()
+  for (const p of base.palpites) {
+    if (!idsJogos.has(p.jogoId) || !permitido(p.usuarioId)) continue
+    const lista = palpitesPorJogo.get(p.jogoId)
+    if (lista) lista.push(p)
+    else palpitesPorJogo.set(p.jogoId, [p])
+  }
+
+  // push um a um (e não push(...lista)): com a ausência são centenas de milhares de
+  // confrontos, e espalhá-los como argumentos estoura a pilha.
+  const brutos: { vencedorId: string; perdedorId: string }[] = []
+  for (const jogo of jogos) {
+    const doJogo = palpitesPorJogo.get(jogo.id) ?? []
+    for (const c of gerarConfrontosDoJogo(doJogo)) brutos.push(c)
+    if (opcoes.considerarAusencia && doJogo.length > 0) {
+      for (const c of gerarConfrontosDeAusencia(jogo, doJogo, usuarios)) brutos.push(c)
+    }
+  }
+
+  // Ordem fixa (por id): detecção de ciclos e caminho mais longo dependem da ordem de visita.
+  return agregarSaldo(brutos).sort(
+    (a, b) => a.vencedorId.localeCompare(b.vencedorId) || a.perdedorId.localeCompare(b.perdedorId)
+  )
+}
