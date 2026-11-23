@@ -1,13 +1,31 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+/* Direção A (Placar): Barlow Condensed (títulos e números) + Public Sans (texto), via @fontsource */
+@import "@fontsource-variable/public-sans";
+@import "@fontsource/barlow-condensed/500.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    --font-sans: 'Public Sans Variable', system-ui, sans-serif;
+    --color-gold: var(--gold);
+    --color-gold-foreground: var(--gold-foreground);
+    /* Painel do grafo: escuro nos dois temas (contrastes no relatório 2026-11-22-08) */
+    --color-grafo-fundo: var(--grafo-fundo);
+    --color-grafo-vidro: var(--grafo-vidro);
+    --color-grafo-texto: var(--grafo-texto);
+    --color-grafo-texto-2: var(--grafo-texto-2);
+    --color-grafo-borda: var(--grafo-borda);
+    --color-grafo-contorno: var(--grafo-contorno);
+    --color-vitoria: var(--vitoria);
+    --color-derrota: var(--derrota);
+    --ease-out-forte: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-gaveta: cubic-bezier(0.32, 0.72, 0, 1);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,83 +66,135 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Tokens dos dois temas. Contrastes WCAG calculados em
+   docs/relatorios/redesign/captura/contraste-temas.py (mantenha os valores iguais aos de lá). */
 :root {
-  --background:        #f0f7f2;       /* verde bem clarinho */
-  --foreground:        #0a1f12;
+  color-scheme: light;
+  --background:        #F7FAF5;       /* papel */
+  --foreground:        #0C2415;       /* tinta: 15,6:1 sobre o papel */
+  --card:              #FFFFFF;
+  --card-foreground:   #0C2415;
+  --popover:           #FFFFFF;
+  --popover-foreground:#0C2415;
 
-  --primary:           #009c3b;       /* verde bandeira */
-  --primary-foreground:#ffffff;
+  --primary:           #00783A;       /* verde: 5,6:1 com texto branco */
+  --primary-foreground:#FFFFFF;
+  --secondary:         #E1F1E6;
+  --secondary-foreground: #005B2B;
+  --muted:             #EAF1E8;
+  --muted-foreground:  #46604F;       /* 6,5:1 sobre o papel */
+  --accent:            #E1F1E6;       /* hover e seleção neutra */
+  --accent-foreground: #005B2B;
+  --gold:              #FFD60A;       /* reservado: pódio, top 5 e "você" */
+  --gold-foreground:   #2B2300;       /* 11,1:1 */
 
-  --secondary:         #e8f5ee;
-  --secondary-foreground: #0a3d1f;
+  --border:            #D5E2D8;       /* divisor (decorativo) */
+  --input:             #6A8A75;       /* borda de campo: 3,6:1 (WCAG 1.4.11) */
+  --ring:              #00783A;
+  --destructive:       #B42318;       /* 6,6:1 sobre branco */
+  --destructive-foreground: #FFFFFF;
 
-  --muted:             #ddeee5;
-  --muted-foreground:  #4a7a5c;
+  --chart-1: #00783A;
+  --chart-2: #0B5CAD;
+  --chart-3: #C2410C;
+  --chart-4: #8A6D00;                 /* dourado escurecido: o #FFD60A some sobre branco */
+  --chart-5: #5E7F6A;
 
-  --accent:            #f5d000;       /* amarelo */
-  --accent-foreground: #3a2f00;
+  --sidebar:                  #FFFFFF;
+  --sidebar-foreground:       #0C2415;
+  --sidebar-primary:          #00783A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent:           #E1F1E6;
+  --sidebar-accent-foreground: #005B2B;
+  --sidebar-border:           #D5E2D8;
+  --sidebar-ring:             #00783A;
 
-  --card:              #ffffff;
-  --card-foreground:   #0a1f12;
+  --radius: 0.375rem;                 /* 6px */
 
-  --border:            #c2dece;
-  --ring:              #009c3b;
-
-  --destructive:       #dc2626;
-  --destructive-foreground: #ffffff;
-
-  --sidebar:                  #ffffff;
-  --sidebar-foreground:       #0a1f12;
-  --sidebar-primary:          #009c3b;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent:           #e8f5ee;
-  --sidebar-accent-foreground: #0a3d1f;
-  --sidebar-border:           #c2dece;
-  --sidebar-ring:             #009c3b;
-
-  --radius: 0.625rem;
+  /* Painel do grafo: o mesmo campo escuro nos dois temas */
+  --grafo-fundo:    #0A2416;
+  --grafo-vidro:    rgba(18, 58, 36, 0.86);   /* controles e legenda (efetivo #113722) */
+  --grafo-texto:    #ECF7F0;                  /* 14,98:1 sobre o painel */
+  --grafo-texto-2:  #A3C7B1;                  /* 8,90:1 sobre o painel */
+  --grafo-borda:    rgba(255, 255, 255, 0.40);/* 4,26:1 sobre o painel */
+  --grafo-contorno: transparent;              /* no claro, o painel já se separa do papel (15,6:1) */
+  --vitoria:        #1F6FC4;                  /* marcador sobre cartão: 5,09:1 */
+  --derrota:        #C2397F;                  /* 5,02:1 */
 }
 
 .dark {
-  --background:        #0a3d1f;
-  --foreground:        #e8f5ee;
+  color-scheme: dark;
+  --background:        #0F1512;       /* quase neutro: deixa o verde do painel do grafo se destacar */
+  --foreground:        #E4EEE7;       /* 15,6:1 */
+  --card:              #161F1A;
+  --card-foreground:   #E4EEE7;       /* 14,2:1 */
+  --popover:           #1C2721;
+  --popover-foreground:#E4EEE7;       /* 13,0:1 */
 
-  --primary:           #f5d000;       /* no dark, o destaque vira o amarelo */
-  --primary-foreground:#1a1a00;
+  --primary:           #3BC97E;       /* verde claro com texto escuro: 8,9:1 */
+  --primary-foreground:#03140A;
+  --secondary:         #1F2C25;
+  --secondary-foreground: #CDE7D6;
+  --muted:             #1A241F;
+  --muted-foreground:  #9AB5A4;       /* 8,4:1 sobre o fundo; 7,7:1 sobre o cartão */
+  --accent:            #22342A;
+  --accent-foreground: #D6EEDD;
+  --gold:              #FFD60A;
+  --gold-foreground:   #2B2300;
 
-  --secondary:         #0f5c2e;
-  --secondary-foreground: #d4eddd;
+  --border:            #2A3A31;
+  --input:             #6B8C78;       /* 4,5:1 sobre o cartão (1.4.11) */
+  --ring:              #5FDDA0;
+  --destructive:       #F2827A;       /* 6,6:1 sobre o cartão */
+  --destructive-foreground: #2A0705;
 
-  --muted:             #0d4a25;
-  --muted-foreground:  #7ab896;
+  --chart-1: #3BC97E;
+  --chart-2: #5DA9F2;
+  --chart-3: #F59152;
+  --chart-4: #FFD60A;
+  --chart-5: #9AB5A4;
 
-  --accent:            #f5d000;
-  --accent-foreground: #3a2f00;
+  --sidebar:                  #121A16;
+  --sidebar-foreground:       #E4EEE7;
+  --sidebar-primary:          #3BC97E;
+  --sidebar-primary-foreground: #03140A;
+  --sidebar-accent:           #22342A;
+  --sidebar-accent-foreground: #D6EEDD;
+  --sidebar-border:           #2A3A31;
+  --sidebar-ring:             #5FDDA0;
 
-  --card:              rgba(255,255,255,0.06);
-  --card-foreground:   #e8f5ee;
-
-  --border:            rgba(255,255,255,0.12);
-  --ring:              #f5d000;
-
-  --sidebar:                  #0f5c2e;
-  --sidebar-foreground:       #e8f5ee;
-  --sidebar-primary:          #f5d000;
-  --sidebar-primary-foreground: #1a1a00;
-  --sidebar-accent:           #0d4a25;
-  --sidebar-accent-foreground: #d4eddd;
-  --sidebar-border:           rgba(255,255,255,0.12);
-  --sidebar-ring:             #f5d000;
+  /* Painel do grafo: mesmo fundo; o contorno o separa do fundo do app (4,0:1) */
+  --grafo-contorno: #4F7F63;
+  --vitoria:        #6AAEF5;          /* 7,2:1 sobre o cartão */
+  --derrota:        #F07AB4;          /* 6,5:1 */
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
+  main h1, main h2 {
+    font-family: var(--font-display);
+    letter-spacing: 0.005em;
+  }
+  main h1 { font-weight: 700; }
+}
+
+/* Vidro do painel do grafo: sólido quando o usuário pede menos transparência */
+@utility vidro-grafo {
+  background-color: var(--grafo-vidro);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid var(--grafo-borda);
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: #113722;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
