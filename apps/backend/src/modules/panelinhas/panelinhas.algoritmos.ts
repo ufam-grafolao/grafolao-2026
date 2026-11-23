@@ -54,7 +54,9 @@ export function acertadoresPorJogo(
   for (const p of palpites) {
     palpiteiros.set(p.jogoId, (palpiteiros.get(p.jogoId) ?? 0) + 1)
     if (ehAcerto(p.status, incluirBonus)) {
-      acertadores.set(p.jogoId, [...(acertadores.get(p.jogoId) ?? []), p.usuarioId])
+      const lista = acertadores.get(p.jogoId)
+      if (lista) lista.push(p.usuarioId)
+      else acertadores.set(p.jogoId, [p.usuarioId])
     }
   }
 
