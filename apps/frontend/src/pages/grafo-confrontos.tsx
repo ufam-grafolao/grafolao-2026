@@ -83,7 +83,7 @@ function ConteudoGrafo({ minPalpites, onVerCompleto }: { minPalpites: number; on
           { rotulo: 'Participantes', valor: grafoQuery.isLoading ? null : nos.length.toLocaleString('pt-BR'), explicacao: 'Cada pessoa no recorte é um nó.' },
           { rotulo: 'Confrontos', valor: grafoQuery.isLoading ? null : arestas.length.toLocaleString('pt-BR'), explicacao: 'Pares em que alguém tem saldo positivo sobre o outro.' },
           { rotulo: 'Densidade', valor: grafoQuery.isLoading ? null : densidade.replace('.', ','), explicacao: 'Parte das ligações possíveis que existe de fato.' },
-          { rotulo: 'Ciclos', valor: ciclosQuery.isLoading ? null : (ciclosQuery.data?.length.toLocaleString('pt-BR') ?? '—'), explicacao: 'Cadeias em que A vence B, B vence C e C vence A.' },
+          { rotulo: 'Ciclos encontrados', valor: ciclosQuery.isLoading ? null : (ciclosQuery.data?.length.toLocaleString('pt-BR') ?? '—'), explicacao: 'Depende da busca: não é a contagem de todos os ciclos do grafo.' },
         ]}
       />
 
@@ -399,7 +399,7 @@ function SecaoCiclos({
             <p className="text-sm text-muted-foreground tabular-nums">
               {selecionados.size > 0
                 ? `${ciclosFiltrados.length} de ${ordenados.length} ciclos`
-                : `${ordenados.length} ciclos no total`}
+                : `${ordenados.length} ciclos encontrados`}
             </p>
             {ciclosFiltrados.length > 5 && (
               <button
