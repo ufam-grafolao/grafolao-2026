@@ -16,6 +16,17 @@ export const COR_GRAFO = {
   arestaRepouso: '#ECF7F0', // usada quase transparente (ver sobreFundo)
 } as const
 
+/**
+ * Cores das maiores panelas (Cliques e Panelinhas). Aparecem só sobre o painel escuro
+ * (nos dois temas), por isso o contraste é medido contra COR_GRAFO.fundo:
+ * 11,65 · 6,60 · 7,09 · 6,38 · 9,03 (todas ≥ 4,5:1, valem também como texto).
+ * Separação sob protanopia/deuteranopia/tritanopia: ΔE mínimo 20 / 18 / 10 (relatório 2026-11-23-10).
+ */
+export const CORES_PANELA = ['#FFD60A', '#5DA9F2', '#F59152', '#F07AB4', '#4FD1E0'] as const
+
+/** Nó fora das maiores panelas, em repouso: recua para as panelas saltarem (3,37:1 sobre o painel). */
+export const COR_NO_RECUADO = '#507A61'
+
 export const FONTE_ROTULO = 'Public Sans Variable, system-ui, sans-serif'
 export const DURACAO_FOCO_MS = 180
 export const DURACAO_CAMERA_MS = 450

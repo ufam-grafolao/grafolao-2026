@@ -34,3 +34,25 @@ export const getRodada = (fase: string, matchday?: string): string => {
   }
   return FASES_PT[fase] ?? fase
 }
+
+const MATA_MATA_API: Record<string, { curto: string; longo: string }> = {
+  'Round of 32': { curto: 'Pré-oit.', longo: 'Pré-oitavas' },
+  'Round of 16': { curto: 'Oitavas', longo: 'Oitavas de final' },
+  'Quarter-final': { curto: 'Quartas', longo: 'Quartas de final' },
+  'Semi-final': { curto: 'Semi', longo: 'Semifinais' },
+  'Match for third place': { curto: '3º lugar', longo: 'Disputa de 3º lugar' },
+  Final: { curto: 'Final', longo: 'Final' },
+}
+
+/**
+ * Nome de uma rodada da API (football-data) para eixos e tabelas.
+ * "Matchday N" é um dia de jogos da fase de grupos; o mata-mata vem pelo nome da fase.
+ */
+export function rotuloRodadaApi(rodada: string): { curto: string; longo: string } {
+  const dia = /^Matchday (\d+)$/.exec(rodada)
+  if (dia) {
+    const rodadaGrupo = RODADAS[rodada]
+    return { curto: dia[1], longo: `Dia ${dia[1]}${rodadaGrupo ? ` (${rodadaGrupo} dos grupos)` : ''}` }
+  }
+  return MATA_MATA_API[rodada] ?? { curto: rodada, longo: rodada }
+}
