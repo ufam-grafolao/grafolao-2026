@@ -77,7 +77,9 @@ export async function buscarMstAgregada(params: {
   const porJogo = new Map<string, PalpiteJogo[]>()
   for (const p of palpites) {
     if (!permitido.has(p.usuarioId)) continue
-    porJogo.set(p.jogoId, [...(porJogo.get(p.jogoId) ?? []), p])
+    const lista = porJogo.get(p.jogoId)
+    if (lista) lista.push(p)
+    else porJogo.set(p.jogoId, [p])
   }
 
   // Só entra no grafo quem palpitou em algum jogo considerado.

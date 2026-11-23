@@ -146,7 +146,11 @@ export function indiceDeZebra(
   ordem: OrdemZebra = 'media'
 ): LinhaZebra[] {
   const porJogo = new Map<string, PalpiteJogo[]>()
-  for (const p of palpites) porJogo.set(p.jogoId, [...(porJogo.get(p.jogoId) ?? []), p])
+  for (const p of palpites) {
+    const lista = porJogo.get(p.jogoId)
+    if (lista) lista.push(p)
+    else porJogo.set(p.jogoId, [p])
+  }
 
   const linhas = new Map<string, LinhaZebra>()
   for (const doJogo of porJogo.values()) {
