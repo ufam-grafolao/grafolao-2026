@@ -17,6 +17,7 @@ import AjudaPage from './pages/ajuda'
 import SobrePage from './pages/sobre'
 import ChaveamentoPage from './pages/chaveamento'
 import GrafoConfrontosPage from './pages/grafo-confrontos'
+import GrafoPanelinhasPage from './pages/grafo-panelinhas'
 import EmBrevePage from './pages/em-breve'
 
 function GlobalLoading() {
@@ -63,7 +64,7 @@ export default function App() {
             <Route path="/sobre" element={<SobrePage />} />
             <Route path="/grafos/confrontos" element={<GrafoConfrontosPage/>} />
             <Route path="/grafos/dag" element={<EmBrevePage titulo="Caminho Mínimo para o Título" />} />
-            <Route path="/grafos/cliques" element={<EmBrevePage titulo="Cliques e Panelinhas" descricao="Comunidades máximas." />} />
+            <Route path="/grafos/cliques" element={<GrafoPanelinhasPage />} />
             <Route path="/grafos/mst" element={<EmBrevePage titulo="Aventura da Zebra" descricao="MST da divergência." />} />
             <Route path="/grafos/redes" element={<EmBrevePage titulo="Redes de Similaridades" descricao="Laços de palpites." />} />
 
