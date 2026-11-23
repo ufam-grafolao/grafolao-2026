@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useTheme } from 'next-themes'
+import { useTema } from '@/hooks/use-tema'
 import Graph from 'graphology'
 import Sigma from 'sigma'
 import forceAtlas2 from 'graphology-layout-forceatlas2'
@@ -43,8 +43,8 @@ export function GrafoCanvas({ nos, arestas, onSelecionarNo }: GrafoCanvasProps) 
   const wrapperRef    = useRef<HTMLDivElement>(null)
   const legendaRef    = useRef<HTMLDivElement>(null)
   const [telaCheia, setTelaCheia] = useState(false)
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
+  const { resolvido } = useTema()
+  const isDark = resolvido === 'dark'
 
   useEffect(() => {
     const onMudanca = () => setTelaCheia(!!document.fullscreenElement)
