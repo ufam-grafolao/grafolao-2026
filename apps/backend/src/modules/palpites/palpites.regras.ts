@@ -85,6 +85,18 @@ export function ganhouPontoExtra(
 
 // ─── Prazo e status do jogo: decide se ainda se pode palpitar
 
+/**
+ * Instante real (UTC) do início de um jogo.
+ *
+ * Por que +4h: o seed grava o horário local de Manaus (UTC-4, arquivo copa2026.utc4.json)
+ * como se fosse UTC. O instante real do início é, portanto, o valor gravado + 4 horas.
+ * É a mesma conversão usada no bloqueio de palpites e na regra da ausência do grafo
+ * de confrontos; as duas precisam concordar sobre quando o jogo começou.
+ */
+export function inicioRealDoJogo(dataHoraGravada: Date): Date {
+  return new Date(new Date(dataHoraGravada).getTime() + 4 * 60 * 60 * 1000)
+}
+
 export function verificarJogoAberto(
   jogo: { status: string; dataHora: Date },
   agora: Date
@@ -97,11 +109,7 @@ export function verificarJogoAberto(
     return { erro: 'Palpites encerrados para esse jogo', status: 403 }
   }
 
-  // Por que +4h: o seed grava o horário local de Manaus (UTC-4, arquivo copa2026.utc4.json)
-  // como se fosse UTC. O instante real do início é, portanto, o valor gravado + 4 horas.
-  const inicioUtcReal = new Date(new Date(jogo.dataHora).getTime() + 4 * 60 * 60 * 1000)
-
-  if (agora >= inicioUtcReal) {
+  if (agora >= inicioRealDoJogo(jogo.dataHora)) {
     return { erro: 'Prazo de palpite encerrado — o jogo já começou', status: 403 }
   }
 
