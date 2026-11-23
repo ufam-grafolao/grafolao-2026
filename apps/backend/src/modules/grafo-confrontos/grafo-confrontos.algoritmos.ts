@@ -1,4 +1,5 @@
 import type { ResultadoCaminhoMaisLongo } from './grafo-confrontos.schema.js'
+import { inicioRealDoJogo } from '../palpites/palpites.regras.js'
 
 // Algoritmos de grafo puros (sem Prisma): recebem vértices e arestas e devolvem resultados.
 // Ficam separados do service para poderem ser testados com grafos pequenos, sem banco.
@@ -252,4 +253,85 @@ export function agregarSaldo(
   }
 
   return agregados
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// REGRA DA AUSÊNCIA (decisão da orientadora)
+//
+// Num jogo ENCERRADO, é AUSENTE quem não palpitou nele e já estava cadastrado
+// antes do início do jogo. O ausente perde para todos que palpitaram, inclusive
+// para quem fez 0 pontos. Ausentes não se confrontam entre si. Quem se cadastrou
+// no início do jogo ou depois não é penalizado: fica fora do confronto daquele jogo.
+//
+// O início do jogo usa a mesma conversão de horário do bloqueio de palpites
+// (inicioRealDoJogo, +4h), para que "não palpitou a tempo" e "já estava
+// cadastrado" falem do mesmo instante.
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface UsuarioCadastro {
+  id: string
+  criadoEm: Date
+}
+
+/** Ausentes de um jogo, na ordem em que aparecem em `usuarios`. */
+export function identificarAusentes(
+  jogo: { dataHora: Date },
+  palpiteiroIds: Iterable<string>,
+  usuarios: UsuarioCadastro[]
+): string[] {
+  const inicio = inicioRealDoJogo(jogo.dataHora).getTime()
+  const palpitou = new Set(palpiteiroIds)
+
+  return usuarios
+    .filter(u => !palpitou.has(u.id) && new Date(u.criadoEm).getTime() < inicio)
+    .map(u => u.id)
+}
+
+/**
+ * Confrontos de ausência de um jogo: cada palpiteiro vence cada ausente.
+ * O palpiteId é o do vencedor, como nos confrontos entre palpites.
+ */
+export function gerarConfrontosDeAusencia(
+  jogo: { dataHora: Date },
+  palpites: { id: string; usuarioId: string }[],
+  usuarios: UsuarioCadastro[]
+): { vencedorId: string; perdedorId: string; palpiteId: string }[] {
+  const ausentes = identificarAusentes(jogo, palpites.map(p => p.usuarioId), usuarios)
+  const confrontos: { vencedorId: string; perdedorId: string; palpiteId: string }[] = []
+
+  for (const palpite of palpites) {
+    for (const ausente of ausentes) {
+      confrontos.push({ vencedorId: palpite.usuarioId, perdedorId: ausente, palpiteId: palpite.id })
+    }
+  }
+
+  return confrontos
+}
+
+/**
+ * Confrontos de ausência de vários jogos encerrados.
+ * Só considera jogos com pelo menos um palpite (sem palpiteiro não há quem vença).
+ */
+export function gerarConfrontosDeAusenciaDosJogos(
+  jogos: { id: string; dataHora: Date }[],
+  palpites: { id: string; usuarioId: string; jogoId: string }[],
+  usuarios: UsuarioCadastro[]
+): { jogoId: string; vencedorId: string; perdedorId: string; palpiteId: string }[] {
+  const palpitesPorJogo = new Map<string, { id: string; usuarioId: string }[]>()
+  for (const p of palpites) {
+    const lista = palpitesPorJogo.get(p.jogoId) ?? []
+    lista.push(p)
+    palpitesPorJogo.set(p.jogoId, lista)
+  }
+
+  const confrontos: { jogoId: string; vencedorId: string; perdedorId: string; palpiteId: string }[] = []
+  for (const jogo of jogos) {
+    const doJogo = palpitesPorJogo.get(jogo.id) ?? []
+    if (doJogo.length === 0) continue
+    for (const c of gerarConfrontosDeAusencia(jogo, doJogo, usuarios)) {
+      confrontos.push({ jogoId: jogo.id, ...c })
+    }
+  }
+  return confrontos
 }
