@@ -16,6 +16,7 @@ import { iniciarScheduler } from './scheduler.js'
 import { palpitesEspeciaisRoutes } from './modules/palpites-especiais/palpites-especiais.routes.js'
 import { jogadoresRoutes } from './modules/jogadores/jogadores.routes.js'
 import { timesRoutes } from './modules/times/times.routes.js'
+import { zebraRoutes } from './modules/zebra/zebra.routes.js'
 import { grafoConfrontosRoutes } from './modules/grafo-confrontos/grafo-confrontos.routes.js'
 import { panelinhasRoutes } from './modules/panelinhas/panelinhas.routes.js'
 
@@ -84,6 +85,7 @@ await app.register(pushRoutes)
 await app.register(palpitesEspeciaisRoutes)
 await app.register(jogadoresRoutes)
 await app.register(timesRoutes)
+await app.register(zebraRoutes)
 await app.register(grafoConfrontosRoutes)
 await app.register(panelinhasRoutes)
 
