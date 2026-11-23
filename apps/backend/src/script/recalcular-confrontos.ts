@@ -8,8 +8,17 @@
  * anteriores foram encerrados antes da construção automática de confrontos
  * existir no fluxo de inserirResultado.
  *
- * Uso:
- *   npx tsx src/scripts/recalcular-confrontos.ts
+ * Regra da ausência: os confrontos de ausência (palpiteiro vence quem não
+ * palpitou) NÃO são gravados aqui. Eles são derivados na leitura, em
+ * grafo-confrontos.service.ts, a partir de jogos, palpites e datas de cadastro.
+ * Por isso não é preciso rodar este script para ativar ou desativar a regra.
+ *
+ * Atenção: nos dados exportados em 2026-08-14, 53 dos 104 jogos encerrados não
+ * tinham confrontos gravados. Rodar este script em produção os criaria e mudaria
+ * o grafo publicado; é uma decisão do mantenedor, não um passo automático.
+ *
+ * Uso (a partir de apps/backend):
+ *   npx tsx src/script/recalcular-confrontos.ts
  */
 
 import prisma from '../db/prisma.js'

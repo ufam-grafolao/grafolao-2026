@@ -5,26 +5,32 @@ import {
   buscarCaminhoMaisLongo,
   buscarEvolucaoPorRodada,
 } from './grafo-confrontos.service.js'
+import { lerBooleano } from '../../shared/utils/query.js'
+
+// considerarAusencia (padrão true): aplica a regra da ausência. Use
+// ?considerarAusencia=false para comparar com o grafo sem a regra.
 
 // ─── GET /grafos/confrontos?rodada=Matchday%201&minPalpites=10 ───────────────
 
 export async function grafoConfrontosController(
-  request: FastifyRequest<{ Querystring: { rodada?: string; minPalpites?: string } }>,
+  request: FastifyRequest<{ Querystring: { rodada?: string; minPalpites?: string; considerarAusencia?: string } }>,
   reply: FastifyReply
 ) {
   const minPalpites = request.query.minPalpites ? Number(request.query.minPalpites) : 0
-  const grafo = await buscarGrafoConfrontos(request.query.rodada, minPalpites)
+  const considerarAusencia = lerBooleano(request.query.considerarAusencia, true)
+  const grafo = await buscarGrafoConfrontos(request.query.rodada, minPalpites, considerarAusencia)
   return reply.send(grafo)
 }
 
 // ─── GET /grafos/confrontos/ciclos?minPalpites=10 ─────────────────────────────
 
 export async function ciclosController(
-  request: FastifyRequest<{ Querystring: { rodada?: string; minPalpites?: string } }>,
+  request: FastifyRequest<{ Querystring: { rodada?: string; minPalpites?: string; considerarAusencia?: string } }>,
   reply: FastifyReply
 ) {
   const minPalpites = request.query.minPalpites ? Number(request.query.minPalpites) : 0
-  const ciclos = await buscarCiclos(request.query.rodada, minPalpites)
+  const considerarAusencia = lerBooleano(request.query.considerarAusencia, true)
+  const ciclos = await buscarCiclos(request.query.rodada, minPalpites, considerarAusencia)
   return reply.send(ciclos)
 }
 
@@ -32,7 +38,7 @@ export async function ciclosController(
 
 export async function caminhoMaisLongoController(
   request: FastifyRequest<{
-    Querystring: { rodada?: string; orcamentoMs?: string; minPalpites?: string }
+    Querystring: { rodada?: string; orcamentoMs?: string; minPalpites?: string; considerarAusencia?: string }
   }>,
   reply: FastifyReply
 ) {
@@ -41,16 +47,19 @@ export async function caminhoMaisLongoController(
     : undefined
   const minPalpites = request.query.minPalpites ? Number(request.query.minPalpites) : 0
 
-  const caminho = await buscarCaminhoMaisLongo(request.query.rodada, orcamentoMs, minPalpites)
+  const considerarAusencia = lerBooleano(request.query.considerarAusencia, true)
+  const caminho = await buscarCaminhoMaisLongo(
+    request.query.rodada, orcamentoMs, minPalpites, considerarAusencia
+  )
   return reply.send(caminho)
 }
 
 // ─── GET /grafos/confrontos/evolucao ──────────────────────────────────────────
 
 export async function evolucaoController(
-  _request: FastifyRequest,
+  request: FastifyRequest<{ Querystring: { considerarAusencia?: string } }>,
   reply: FastifyReply
 ) {
-  const evolucao = await buscarEvolucaoPorRodada()
+  const evolucao = await buscarEvolucaoPorRodada(lerBooleano(request.query.considerarAusencia, true))
   return reply.send(evolucao)
 }

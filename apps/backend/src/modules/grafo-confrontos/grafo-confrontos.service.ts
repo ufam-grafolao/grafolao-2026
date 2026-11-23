@@ -12,6 +12,7 @@ import {
   calcularPageRank,
   caminhoMaisLongo,
   detectarCiclos,
+  gerarConfrontosDeAusenciaDosJogos,
   gerarConfrontosDoJogo,
 } from './grafo-confrontos.algoritmos.js'
 import type { ConfrontoAgregado } from './grafo-confrontos.algoritmos.js'
@@ -57,12 +58,14 @@ export async function construirConfrontosJogo(jogoId: string) {
 
 
 async function agregarConfrontos(
-  rodada?: string,
-  idsPermitidos?: Set<string>
+  rodadas: string | string[] | undefined,
+  idsPermitidos: Set<string> | undefined,
+  considerarAusencia: boolean
 ): Promise<ConfrontoAgregado[]> {
-  const where: Record<string, unknown> = rodada
-    ? { jogo: { rodada } }
-    : {}
+  const filtroRodada =
+    rodadas === undefined ? {} : { rodada: Array.isArray(rodadas) ? { in: rodadas } : rodadas }
+
+  const where: Record<string, unknown> = rodadas === undefined ? {} : { jogo: filtroRodada }
 
   if (idsPermitidos) {
     const ids = Array.from(idsPermitidos)
@@ -75,7 +78,44 @@ async function agregarConfrontos(
     select: { vencedorId: true, perdedorId: true },
   })
 
-  return agregarSaldo(confrontos)
+  if (considerarAusencia) {
+    confrontos.push(...(await confrontosDeAusencia(filtroRodada, idsPermitidos)))
+  }
+
+  // Ordem fixa (por id) para que os algoritmos que dependem da ordem de visita
+  // (detecção de ciclos, caminho mais longo) deem sempre o mesmo resultado.
+  return agregarSaldo(confrontos).sort(
+    (a, b) => a.vencedorId.localeCompare(b.vencedorId) || a.perdedorId.localeCompare(b.perdedorId)
+  )
+}
+
+/**
+ * Confrontos de ausência (ver identificarAusentes): não ficam gravados na tabela
+ * Confronto, são derivados na leitura a partir de jogos ENCERRADOS, palpites e
+ * datas de cadastro. Assim a tabela continua guardando só palpite contra palpite
+ * e "sem a regra" segue idêntico ao comportamento anterior.
+ */
+async function confrontosDeAusencia(
+  filtroRodada: Record<string, unknown>,
+  idsPermitidos?: Set<string>
+): Promise<{ vencedorId: string; perdedorId: string }[]> {
+  const ids = idsPermitidos ? Array.from(idsPermitidos) : undefined
+
+  const jogos = await prisma.jogo.findMany({
+    where: { status: 'ENCERRADO', ...filtroRodada },
+    select: { id: true, dataHora: true },
+  })
+  const palpites = await prisma.palpite.findMany({
+    where: { jogoId: { in: jogos.map(j => j.id) }, ...(ids ? { usuarioId: { in: ids } } : {}) },
+    select: { id: true, usuarioId: true, jogoId: true },
+  })
+  const usuarios = await prisma.usuario.findMany({
+    where: ids ? { id: { in: ids } } : {},
+    select: { id: true, criadoEm: true },
+  })
+
+  return gerarConfrontosDeAusenciaDosJogos(jogos, palpites, usuarios)
+    .map(({ vencedorId, perdedorId }) => ({ vencedorId, perdedorId }))
 }
 
 
@@ -91,6 +131,7 @@ async function agregarConfrontos(
  */
 async function buscarUsuariosFiltrados(minPalpites: number = 0) {
   const usuarios = await prisma.usuario.findMany({
+    orderBy: { id: 'asc' },
     select: {
       id: true,
       nome: true,
@@ -106,12 +147,13 @@ async function buscarUsuariosFiltrados(minPalpites: number = 0) {
 
 export async function buscarGrafoConfrontos(
   rodada?: string,
-  minPalpites: number = 0
+  minPalpites: number = 0,
+  considerarAusencia: boolean = true
 ): Promise<GrafoConfrontosResponse> {
   const usuarios = await buscarUsuariosFiltrados(minPalpites)
   const vertices = usuarios.map(u => u.id)
   const idsPermitidos = minPalpites > 0 ? new Set(vertices) : undefined
-  const arestas = await agregarConfrontos(rodada, idsPermitidos)
+  const arestas = await agregarConfrontos(rodada, idsPermitidos, considerarAusencia)
 
   const pageRankMap = calcularPageRank(vertices, arestas)
 
@@ -140,13 +182,14 @@ export async function buscarGrafoConfrontos(
 
 export async function buscarCiclos(
   rodada?: string,
-  minPalpites: number = 0
+  minPalpites: number = 0,
+  considerarAusencia: boolean = true
 ): Promise<CicloResponse[]> {
   const usuarios = await buscarUsuariosFiltrados(minPalpites)
   const mapaNomes = new Map(usuarios.map(u => [u.id, u.nome]))
   const vertices = usuarios.map(u => u.id)
   const idsPermitidos = minPalpites > 0 ? new Set(vertices) : undefined
-  const arestas = await agregarConfrontos(rodada, idsPermitidos)
+  const arestas = await agregarConfrontos(rodada, idsPermitidos, considerarAusencia)
 
   const ciclos = detectarCiclos(vertices, arestas)
   console.log(`Ciclos encontrados: ${ciclos.length}`)
@@ -160,13 +203,14 @@ export async function buscarCiclos(
 export async function buscarCaminhoMaisLongo(
   rodada?: string,
   orcamentoMs?: number,
-  minPalpites: number = 0
+  minPalpites: number = 0,
+  considerarAusencia: boolean = true
 ): Promise<CaminhoMaisLongoResponse> {
   const usuarios = await buscarUsuariosFiltrados(minPalpites)
   const mapaNomes = new Map(usuarios.map(u => [u.id, u.nome]))
   const vertices = usuarios.map(u => u.id)
   const idsPermitidos = minPalpites > 0 ? new Set(vertices) : undefined
-  const arestas = await agregarConfrontos(rodada, idsPermitidos)
+  const arestas = await agregarConfrontos(rodada, idsPermitidos, considerarAusencia)
 
   const { caminhoIds, completou, tempoMs } = caminhoMaisLongo(
     vertices,
@@ -186,7 +230,9 @@ export async function buscarCaminhoMaisLongo(
  * Calcula a evolução do PageRank rodada a rodada (G_1 ⊆ G_2 ⊆ ... ⊆ G_T),
  * para gerar gráficos de evolução temporal (bônus — Critério 06).
  */
-export async function buscarEvolucaoPorRodada(): Promise<EvolucaoRodadaResponse[]> {
+export async function buscarEvolucaoPorRodada(
+  considerarAusencia: boolean = true
+): Promise<EvolucaoRodadaResponse[]> {
   // A ordem das rodadas vem da data do primeiro jogo de cada uma (e não do nome,
   // pois "Matchday 10" vem antes de "Matchday 2" na ordem de texto).
   const jogos = await prisma.jogo.findMany({
@@ -198,42 +244,14 @@ export async function buscarEvolucaoPorRodada(): Promise<EvolucaoRodadaResponse[
   )
 
   const usuarios = await buscarUsuariosFiltrados(0)
+  const vertices = usuarios.map(u => u.id)
   const resultado: EvolucaoRodadaResponse[] = []
 
   const rodadasOrdenadas = ordenarRodadasPorData(jogos).filter(r => rodadasComJogoEncerrado.has(r))
 
   for (let i = 0; i < rodadasOrdenadas.length; i++) {
     const rodadasAcumuladas = rodadasOrdenadas.slice(0, i + 1)
-
-    const confrontos = await prisma.confronto.findMany({
-      where: { jogo: { rodada: { in: rodadasAcumuladas } } },
-      select: { vencedorId: true, perdedorId: true },
-    })
-
-    const contagem = new Map<string, number>()
-    for (const c of confrontos) {
-      const chave = `${c.vencedorId}::${c.perdedorId}`
-      contagem.set(chave, (contagem.get(chave) ?? 0) + 1)
-    }
-
-    const paresProcessados = new Set<string>()
-    const arestasAcumuladas: ConfrontoAgregado[] = []
-
-    for (const [chave] of contagem) {
-      const [a, b] = chave.split('::')
-      const parId = [a, b].sort().join('::')
-      if (paresProcessados.has(parId)) continue
-      paresProcessados.add(parId)
-
-      const vitoriasAB = contagem.get(`${a}::${b}`) ?? 0
-      const vitoriasBA = contagem.get(`${b}::${a}`) ?? 0
-      const saldo = vitoriasAB - vitoriasBA
-
-      if (saldo > 0) arestasAcumuladas.push({ vencedorId: a, perdedorId: b, peso: saldo })
-      else if (saldo < 0) arestasAcumuladas.push({ vencedorId: b, perdedorId: a, peso: -saldo })
-    }
-
-    const vertices = usuarios.map(u => u.id)
+    const arestasAcumuladas = await agregarConfrontos(rodadasAcumuladas, undefined, considerarAusencia)
     const pageRankMap = calcularPageRank(vertices, arestasAcumuladas)
 
     const ranking = usuarios
